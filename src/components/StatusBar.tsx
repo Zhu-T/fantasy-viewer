@@ -31,8 +31,8 @@ export function StatusBar({ data, auth, isValidating, week, onWeekChange, onRefr
   const signedIn = data?.authOk ?? auth?.authOk ?? false;
 
   return (
-    <header className="sticky top-0 z-10 border-b border-border bg-background/85 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3">
+    <header className="safe-top sticky top-0 z-10 border-b border-border bg-background/85 backdrop-blur">
+      <div className="safe-x mx-auto flex max-w-6xl flex-wrap items-center gap-3 py-3">
         <h1 className="text-lg font-semibold tracking-tight">Fantasy Viewer</h1>
 
         <span

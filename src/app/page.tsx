@@ -6,10 +6,14 @@ import { MatchupCard } from "@/components/MatchupCard";
 import { StatusBar } from "@/components/StatusBar";
 import type { AuthStatus, MatchupsResponse } from "@/lib/espn/types";
 
-async function fetcher<T>(url: string): Promise<T> {
+type WithCacheFlag<T> = T & { fromCache?: boolean };
+
+async function fetcher<T>(url: string): Promise<WithCacheFlag<T>> {
   const res = await fetch(url, { cache: "no-store" });
-  const body = (await res.json().catch(() => ({}))) as T & { error?: string };
+  const body = (await res.json().catch(() => ({}))) as WithCacheFlag<T> & { error?: string };
   if (!res.ok && res.status !== 401) throw new Error(body.error ?? `Request failed (${res.status})`);
+  // Set by the service worker when it had to fall back to the last good response.
+  if (res.headers.get("X-From-Cache") === "1") body.fromCache = true;
   return body;
 }
 
@@ -21,7 +25,7 @@ export default function Home() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const matchupsKey = week ? `/api/matchups?week=${week}` : "/api/matchups";
-  const matchups = useSWR<MatchupsResponse>(matchupsKey, fetcher, {
+  const matchups = useSWR<WithCacheFlag<MatchupsResponse>>(matchupsKey, fetcher, {
     refreshInterval: (latest) => latest?.nextRefreshMs ?? IDLE_MS,
     revalidateOnFocus: true,
     dedupingInterval: 5_000,
@@ -79,7 +83,12 @@ export default function Home() {
         busy={busy}
       />
 
-      <section className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+      <section className="safe-x safe-bottom mx-auto w-full max-w-6xl flex-1 py-6">
+        {data?.fromCache && (
+          <p className="mb-4 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn">
+            You appear to be offline. Showing the last scores this device saw.
+          </p>
+        )}
         {actionError && (
           <p className="mb-4 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">{actionError}</p>
         )}

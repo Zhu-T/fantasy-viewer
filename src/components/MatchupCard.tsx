@@ -17,10 +17,12 @@ function remaining(side: TeamSide): string {
   return parts.join(" · ");
 }
 
+/* On phones both sides stack as left-aligned rows; from `sm` up they sit side by
+ * side with the opponent mirrored so the scores meet in the middle. */
 function Side({ side, align, leading, final }: { side: TeamSide; align: "left" | "right"; leading: boolean; final: boolean }) {
   const right = align === "right";
   return (
-    <div className={`flex min-w-0 flex-1 items-center gap-3 ${right ? "flex-row-reverse text-right" : ""}`}>
+    <div className={`flex min-w-0 flex-1 items-center gap-3 ${right ? "sm:flex-row-reverse sm:text-right" : ""}`}>
       {side.logo ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={side.logo} alt="" className="h-10 w-10 shrink-0 rounded-full bg-surface-2 object-cover" />
@@ -34,7 +36,7 @@ function Side({ side, align, leading, final }: { side: TeamSide; align: "left" |
           {!final && <span className="ml-2">{remaining(side)}</span>}
         </div>
       </div>
-      <div className={`shrink-0 tabular-nums ${right ? "text-left" : "text-right"}`}>
+      <div className={`shrink-0 text-right tabular-nums ${right ? "sm:text-left" : ""}`}>
         <div className={`text-2xl font-semibold ${leading ? "text-accent" : ""}`}>{fmt(side.points)}</div>
         {!final && side.projected != null && <div className="text-xs text-muted">proj {fmt(side.projected)}</div>}
       </div>
@@ -62,7 +64,7 @@ export function MatchupCard({ m }: { m: MyMatchup }) {
   else badge = { text: "Upcoming", cls: "bg-surface-2 text-muted" };
 
   return (
-    <article className="rounded-xl border border-border bg-surface p-4 shadow-sm">
+    <article className="min-w-0 rounded-xl border border-border bg-surface p-4 shadow-sm">
       <div className="mb-3 flex items-center gap-2">
         <a href={m.leagueUrl} target="_blank" rel="noreferrer" className="truncate text-sm font-semibold hover:underline">
           {m.leagueName}
@@ -75,9 +77,9 @@ export function MatchupCard({ m }: { m: MyMatchup }) {
       </div>
 
       {opp ? (
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           <Side side={m.me} align="left" leading={meLeads} final={final} />
-          <span className="shrink-0 text-xs text-muted">vs</span>
+          <span className="hidden shrink-0 text-xs text-muted sm:inline">vs</span>
           <Side side={opp} align="right" leading={oppLeads} final={final} />
         </div>
       ) : (

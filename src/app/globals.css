@@ -42,3 +42,15 @@ body {
 .live-dot {
   animation: pulse-dot 1.4s ease-in-out infinite;
 }
+
+/* Keep content clear of notches / home indicators when installed full-screen. */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-x {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+.safe-bottom {
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}

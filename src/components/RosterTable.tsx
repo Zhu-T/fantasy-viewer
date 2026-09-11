@@ -23,9 +23,9 @@ function stateClass(p: PlayerLine): string {
 function PlayerRow({ p, align }: { p: PlayerLine; align: "left" | "right" }) {
   const right = align === "right";
   return (
-    <div className={`flex items-center gap-2 py-1 text-sm ${right ? "flex-row-reverse text-right" : ""}`}>
+    <div className={`flex items-center gap-2 py-1 text-sm ${right ? "sm:flex-row-reverse sm:text-right" : ""}`}>
       <span className="w-9 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted">{p.slot}</span>
-      <div className={`min-w-0 flex-1 ${right ? "text-right" : ""}`}>
+      <div className={`min-w-0 flex-1 ${right ? "sm:text-right" : ""}`}>
         <div className="truncate">
           {p.name}
           {p.injuryStatus && <span className="ml-1 text-[10px] font-semibold text-danger">{p.injuryStatus.slice(0, 3)}</span>}
@@ -36,7 +36,7 @@ function PlayerRow({ p, align }: { p: PlayerLine; align: "left" | "right" }) {
           {p.gameDetail || (p.gameState === "pre" ? "Yet to play" : "")}
         </div>
       </div>
-      <div className={`w-14 shrink-0 tabular-nums ${right ? "text-left" : "text-right"}`}>
+      <div className={`w-14 shrink-0 text-right tabular-nums ${right ? "sm:text-left" : ""}`}>
         <div className={`font-medium ${p.gameState === "pre" ? "text-muted" : ""}`}>{fmt(p.points)}</div>
         {p.gameState !== "post" && p.projected != null && (
           <div className="text-[11px] text-muted">proj {fmt(p.projected)}</div>
@@ -46,21 +46,24 @@ function PlayerRow({ p, align }: { p: PlayerLine; align: "left" | "right" }) {
   );
 }
 
+/* Side-by-side columns from `sm` up; stacked (mine, then theirs) on phones. */
 export function RosterTable({ me, opponent }: { me: TeamSide; opponent: TeamSide | null }) {
   const rows = Math.max(me.starters.length, opponent?.starters.length ?? 0);
   return (
-    <div className="grid grid-cols-2 gap-6 border-t border-border pt-3">
-      <div className="divide-y divide-border/60 border-r border-border pr-3">
+    <div className="grid grid-cols-1 gap-4 border-t border-border pt-3 sm:grid-cols-2 sm:gap-6">
+      <div className="divide-y divide-border/60 sm:border-r sm:border-border sm:pr-3">
+        <div className="pb-1 text-xs font-semibold text-muted sm:hidden">{me.name}</div>
         {Array.from({ length: rows }).map((_, i) =>
-          me.starters[i] ? <PlayerRow key={me.starters[i].id + "-" + i} p={me.starters[i]} align="left" /> : <div key={i} className="py-1" />,
+          me.starters[i] ? <PlayerRow key={me.starters[i].id + "-" + i} p={me.starters[i]} align="left" /> : <div key={i} className="hidden py-1 sm:block" />,
         )}
       </div>
       <div className="divide-y divide-border/60">
+        <div className="pb-1 text-xs font-semibold text-muted sm:hidden">{opponent?.name}</div>
         {Array.from({ length: rows }).map((_, i) =>
           opponent?.starters[i] ? (
             <PlayerRow key={opponent.starters[i].id + "-" + i} p={opponent.starters[i]} align="right" />
           ) : (
-            <div key={i} className="py-1" />
+            <div key={i} className="hidden py-1 sm:block" />
           ),
         )}
       </div>
