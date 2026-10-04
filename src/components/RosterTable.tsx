@@ -112,12 +112,9 @@ function Half({ p, side, scorer }: { p: PlayerLine | undefined; side: "left" | "
   );
 }
 
-const ROW_GRID =
-  "grid grid-cols-[minmax(0,1fr)_auto_2.25rem_auto_minmax(0,1fr)] items-center gap-x-1.5 sm:grid-cols-[minmax(0,1fr)_auto_2.75rem_auto_minmax(0,1fr)] sm:gap-x-2";
-
 /**
- * ESPN's win probability, FantasyCast style: under "Pts / Proj", each team's
- * percentage sits on its own side of a bar (left team blue, right team red).
+ * ESPN's win probability, FantasyCast style: a full-width bar under the team
+ * names, each team's percentage at its own end (left team blue, right team red).
  * Hidden when ESPN sends none or the matchup is final.
  */
 function WinProbability({ me, opponent }: { me: TeamSide; opponent: TeamSide }) {
@@ -126,15 +123,15 @@ function WinProbability({ me, opponent }: { me: TeamSide; opponent: TeamSide }) 
   const left = formatProbability(p);
   const right = formatProbability(1 - p);
   return (
-    <div className={`${ROW_GRID} pb-2`} role="img" aria-label={`ESPN win probability: ${me.name} ${left}, ${opponent.name} ${right}`}>
-      <span className="text-right text-[13px] font-semibold text-accent" aria-hidden>
+    <div className="flex items-center gap-2.5 pb-2.5 pt-0.5" role="img" aria-label={`ESPN win probability: ${me.name} ${left}, ${opponent.name} ${right}`}>
+      <span className="shrink-0 text-[13px] font-semibold text-accent" aria-hidden>
         {left}
       </span>
-      <div className="col-span-3 flex h-1.5 gap-0.5 overflow-hidden rounded-full" aria-hidden>
+      <div className="flex h-1.5 flex-1 gap-0.5 overflow-hidden rounded-full" aria-hidden>
         <div className="h-full bg-accent-solid transition-[width] duration-500 motion-reduce:transition-none" style={{ width: `${p * 100}%` }} />
         <div className="h-full flex-1 bg-versus-solid" />
       </div>
-      <span className="text-[13px] font-semibold text-versus" aria-hidden>
+      <span className="shrink-0 text-[13px] font-semibold text-versus" aria-hidden>
         {right}
       </span>
     </div>
@@ -160,9 +157,9 @@ export function RosterTable({
   return (
     <div className="px-2.5 pb-1.5 pt-2 sm:px-3">
       <div className="grid grid-cols-[minmax(0,1fr)_auto_2.25rem_auto_minmax(0,1fr)] items-center gap-x-1.5 pb-1.5 text-[11px] text-muted sm:grid-cols-[minmax(0,1fr)_auto_2.75rem_auto_minmax(0,1fr)] sm:gap-x-2">
-        <span className="truncate">{me.name}</span>
+        <span className="truncate text-[13px] font-semibold text-foreground sm:text-sm">{me.name}</span>
         <span className="col-span-3 text-center">Pts&nbsp;/&nbsp;Proj</span>
-        <span className="truncate text-right">{opponent.name}</span>
+        <span className="truncate text-right text-[13px] font-semibold text-foreground sm:text-sm">{opponent.name}</span>
       </div>
       <WinProbability me={me} opponent={opponent} />
       {Array.from({ length: rows }).map((_, i) => {

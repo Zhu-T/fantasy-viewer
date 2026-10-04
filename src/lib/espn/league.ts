@@ -438,13 +438,15 @@ function toMatchup(ctx: LeagueContext, matchup: RawMatchup, focusTeamId: number 
     else if (winner === "AWAY") result = focusIsAway ? "W" : "L";
   }
 
+  // ESPN only declares a winner after the last game of the week (often Monday
+  // night), so "undecided" alone doesn't mean anyone is playing right now.
   let status: MyMatchup["status"];
   if (isFinal) status = "final";
   else {
     const all = [...me.starters, ...(opponent?.starters ?? [])];
-    const anyStarted = all.some((p) => p.gameState === "in" || p.gameState === "post");
-    const anyPoints = me.points > 0 || (opponent?.points ?? 0) > 0;
-    status = anyStarted || anyPoints ? "live" : "pre";
+    const anyPlaying = all.some((p) => p.gameState === "in");
+    const anyStarted = all.some((p) => p.gameState === "post") || me.points > 0 || (opponent?.points ?? 0) > 0;
+    status = anyPlaying ? "live" : anyStarted ? "between" : "pre";
   }
 
   return {

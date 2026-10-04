@@ -5,14 +5,15 @@ import { useState } from "react";
 import type { MyMatchup, TeamSide } from "@/lib/espn/types";
 import { RosterTable } from "./RosterTable";
 import { TeamLogo } from "./TeamLogo";
-import { cardClass, formatPoints } from "./ui";
+import { cardClass, formatKickoff, formatPoints } from "./ui";
 import { useLastScorer, type LastScorer } from "./useLastScorer";
 
-function remaining(side: TeamSide): string[] {
-  const parts: string[] = [];
-  if (side.inProgress) parts.push(`${side.inProgress} playing`);
-  if (side.yetToPlay) parts.push(`${side.yetToPlay} to go`);
-  if (!parts.length && side.starters.length) parts.push("All done");
+/** Progress line: players on the field now in red, players still to play in yellow. */
+function remaining(side: TeamSide): { text: string; className?: string }[] {
+  const parts: { text: string; className?: string }[] = [];
+  if (side.inProgress) parts.push({ text: `${side.inProgress} playing`, className: "font-medium text-live" });
+  if (side.yetToPlay) parts.push({ text: `${side.yetToPlay} to go`, className: "font-medium text-flag" });
+  if (!parts.length && side.starters.length) parts.push({ text: "All done" });
   return parts;
 }
 
@@ -32,7 +33,12 @@ function TeamRow({ side, ahead, final, scorer }: { side: TeamSide; ahead: boolea
         <div className="truncate text-[15px] font-medium leading-tight">{side.name}</div>
         <div className="mt-0.5 flex flex-wrap gap-x-2.5 text-xs text-muted">
           {side.record && <span>{side.record}</span>}
-          {!final && remaining(side).map((p) => <span key={p}>{p}</span>)}
+          {!final &&
+            remaining(side).map((p) => (
+              <span key={p.text} className={p.className}>
+                {p.text}
+              </span>
+            ))}
           {!final && redZoneCount(side) > 0 && <span className="font-medium text-danger">{redZoneCount(side)}&nbsp;in red zone</span>}
         </div>
         {!final && scorer && (
@@ -65,7 +71,20 @@ function StatusTag({ m }: { m: MyMatchup }) {
       </span>
     );
   }
+  if (m.status === "between") {
+    const next = nextKickoff(m);
+    return <span className="text-muted">{next ? `Next: ${next}` : "Awaiting Final"}</span>;
+  }
   return <span className="text-muted">Not Started</span>;
+}
+
+/** Earliest kickoff among both teams' starters who haven't played yet, in the viewer's time zone. */
+function nextKickoff(m: MyMatchup): string | null {
+  const times = [...m.me.starters, ...(m.opponent?.starters ?? [])]
+    .filter((p) => p.gameState === "pre" && p.kickoffIso)
+    .map((p) => Date.parse(p.kickoffIso!))
+    .filter(Number.isFinite);
+  return times.length ? formatKickoff(new Date(Math.min(...times)).toISOString()) : null;
 }
 
 /**

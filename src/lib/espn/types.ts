@@ -74,7 +74,13 @@ export interface TeamSide {
   finished: number;
 }
 
-export type MatchupStatus = "pre" | "live" | "final";
+/**
+ * pre: nobody has played yet. live: a starter's game is in progress right now.
+ * between: some games are done but none is on (e.g. Sunday night before the
+ * Monday game, or everyone's done and ESPN hasn't declared a winner yet).
+ * final: ESPN has declared the result.
+ */
+export type MatchupStatus = "pre" | "live" | "between" | "final";
 
 export interface MyMatchup {
   leagueId: string;
