@@ -58,6 +58,15 @@ export function formatPoints(n: number | null | undefined): string {
   return n == null ? "–" : points.format(n);
 }
 
+const percent = new Intl.NumberFormat(undefined, { style: "percent", maximumFractionDigits: 0 });
+
+/** A 0–1 probability as a whole percent; never rounds an undecided game to 0% or 100%. */
+export function formatProbability(p: number): string {
+  if (p > 0.99) return `>${percent.format(0.99)}`;
+  if (p < 0.01) return `<${percent.format(0.01)}`;
+  return percent.format(p);
+}
+
 const kickoff = new Intl.DateTimeFormat(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" });
 
 /** Kickoff in the viewer's own time zone and locale (the server runs in UTC). */

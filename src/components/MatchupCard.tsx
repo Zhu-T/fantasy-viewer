@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { MyMatchup, TeamSide } from "@/lib/espn/types";
 import { RosterTable } from "./RosterTable";
 import { TeamLogo } from "./TeamLogo";
-import { cardClass, formatPoints } from "./ui";
+import { cardClass, formatPoints, formatProbability } from "./ui";
 import { useLastScorer, type LastScorer } from "./useLastScorer";
 
 function remaining(side: TeamSide): string[] {
@@ -32,6 +32,11 @@ function TeamRow({ side, ahead, final, scorer }: { side: TeamSide; ahead: boolea
         <div className="truncate text-[15px] font-medium leading-tight">{side.name}</div>
         <div className="mt-0.5 flex flex-wrap gap-x-2.5 text-xs text-muted">
           {side.record && <span>{side.record}</span>}
+          {!final && side.winProbability != null && (
+            <span title="ESPN win probability">
+              <span className="font-medium text-foreground">{formatProbability(side.winProbability)}</span>&nbsp;to win
+            </span>
+          )}
           {!final && remaining(side).map((p) => <span key={p}>{p}</span>)}
           {!final && redZoneCount(side) > 0 && <span className="font-medium text-danger">{redZoneCount(side)}&nbsp;in red zone</span>}
         </div>

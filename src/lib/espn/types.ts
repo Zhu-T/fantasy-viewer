@@ -66,6 +66,8 @@ export interface TeamSide {
   record: string;
   points: number;
   projected: number | null;
+  /** ESPN's win probability (0–1) while the matchup is undecided; null when ESPN doesn't send one. */
+  winProbability: number | null;
   starters: PlayerLine[];
   yetToPlay: number;
   inProgress: number;

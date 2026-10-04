@@ -51,6 +51,8 @@ interface RawSide {
   pointsByScoringPeriod?: Record<string, number>;
   rosterForCurrentScoringPeriod?: { entries?: RawRosterEntry[] };
   rosterForMatchupPeriod?: { entries?: RawRosterEntry[] };
+  /** ESPN's own win probability for this side (comes with mMatchupScore). */
+  winProbability?: number;
 }
 
 interface RawMatchup {
@@ -361,9 +363,29 @@ function buildSide(
     record: recordString(team),
     points: round(points),
     projected,
+    winProbability: matchupIsFinal ? null : parseWinProbability(side.winProbability),
     starters,
     ...countStates(starters),
   };
+}
+
+/** ESPN's raw win probability, or null when it's missing or not a sensible number. */
+function parseWinProbability(raw: unknown): number | null {
+  const n = Number(raw);
+  return raw == null || !Number.isFinite(n) || n < 0 || n > 100 ? null : n;
+}
+
+/**
+ * Puts both sides' win probabilities on a 0–1 scale. ESPN's format isn't
+ * documented: the two sides add up to ~1 (fractions) or ~100 (percent), so
+ * the sum tells which; with only one side, anything above 1 is a percent.
+ */
+function normalizeWinProbabilities(a: TeamSide, b: TeamSide | null): void {
+  const sides = [a, b].filter((s): s is TeamSide => s != null && s.winProbability != null);
+  if (!sides.length) return;
+  const total = sides.reduce((sum, s) => sum + s.winProbability!, 0);
+  const percent = sides.length === 2 ? total > 2 : total > 1;
+  for (const s of sides) s.winProbability = Math.min(1, s.winProbability! / (percent ? 100 : 1));
 }
 
 interface LeagueContext {
@@ -406,6 +428,7 @@ function toMatchup(ctx: LeagueContext, matchup: RawMatchup, focusTeamId: number 
 
   const me = buildSide(meRaw, meTeam, ctx.ref.season, period, isFinal, nfl);
   const opponent = oppRaw && oppTeam ? buildSide(oppRaw, oppTeam, ctx.ref.season, period, isFinal, nfl) : null;
+  normalizeWinProbabilities(me, opponent);
   const involvesMe = focusTeamId != null && (me.teamId === focusTeamId || opponent?.teamId === focusTeamId);
 
   let result: MyMatchup["result"] = null;
