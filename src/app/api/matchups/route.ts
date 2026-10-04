@@ -1,9 +1,11 @@
 import type { NextRequest } from "next/server";
-import { getMatchups } from "@/lib/espn/aggregate";
-import { EspnAuthError } from "@/lib/espn/types";
-import { markAuthExpired } from "@/lib/espn/auth";
+import { emptyResponse, getMatchups } from "@/lib/espn/aggregate";
+import { getSession } from "@/lib/espn/auth";
+import { currentSeason } from "@/lib/espn/store";
 
 export const dynamic = "force-dynamic";
+
+const NO_STORE = { "Cache-Control": "private, no-store" };
 
 export async function GET(req: NextRequest) {
   const weekParam = req.nextUrl.searchParams.get("week");
@@ -12,14 +14,17 @@ export async function GET(req: NextRequest) {
     return Response.json({ error: "week must be an integer 1-18" }, { status: 400 });
   }
 
+  const session = await getSession();
+  if (!session) {
+    return Response.json(emptyResponse(currentSeason(), "Add a league to get started.", false), {
+      headers: NO_STORE,
+    });
+  }
+
   try {
-    const data = await getMatchups({ week });
-    return Response.json(data, { headers: { "Cache-Control": "no-store" } });
+    const data = await getMatchups(session, { week });
+    return Response.json(data, { headers: NO_STORE });
   } catch (err) {
-    if (err instanceof EspnAuthError) {
-      markAuthExpired("ESPN rejected the saved cookies.");
-      return Response.json({ authOk: false, error: err.message }, { status: 401 });
-    }
     const message = err instanceof Error ? err.message : String(err);
     return Response.json({ error: message }, { status: 502 });
   }

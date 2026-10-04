@@ -34,8 +34,6 @@ yarn-error.log*
 .env*
 !.env.example
 
-# ESPN cookies + discovered leagues
-/data/
 
 # vercel
 .vercel

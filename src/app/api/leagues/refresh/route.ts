@@ -1,17 +1,17 @@
-import { getCookies } from "@/lib/espn/auth";
+import { getSession } from "@/lib/espn/auth";
 import { getLeagues } from "@/lib/espn/fan";
 import { invalidateMatchupCache } from "@/lib/espn/aggregate";
 import { EspnAuthError } from "@/lib/espn/types";
 
 export const dynamic = "force-dynamic";
 
-/** Re-run league discovery against the fan API, ignoring the on-disk cache. */
+/** Re-run league discovery against the fan API, ignoring the cache. */
 export async function POST() {
-  const cookies = getCookies();
-  if (!cookies) return Response.json({ error: "Not signed in to ESPN." }, { status: 401 });
+  const session = await getSession();
+  if (!session) return Response.json({ error: "Not connected to ESPN." }, { status: 401 });
   try {
-    const result = await getLeagues(cookies, { force: true });
-    invalidateMatchupCache();
+    const result = await getLeagues(session, { force: true });
+    invalidateMatchupCache(session);
     return Response.json(result);
   } catch (err) {
     const status = err instanceof EspnAuthError ? 401 : 502;

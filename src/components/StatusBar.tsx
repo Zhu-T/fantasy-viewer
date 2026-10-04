@@ -1,16 +1,26 @@
 "use client";
 
-import type { AuthStatus, MatchupsResponse } from "@/lib/espn/types";
+import Link from "next/link";
+import type { ReactNode } from "react";
+import type { MatchupsResponse } from "@/lib/espn/types";
+import { buttonClass } from "./ui";
 
 interface Props {
-  data: MatchupsResponse | undefined;
-  auth: AuthStatus | undefined;
+  data: Pick<MatchupsResponse, "anyGamesLive" | "week" | "currentWeek" | "fetchedAt"> | undefined;
+  /** Replaces the app name, e.g. with the league name. */
+  title?: ReactNode;
+  /** Shows a back link to this path before the title. */
+  backHref?: string;
+  configured: boolean;
+  canRescan: boolean;
   isValidating: boolean;
   week: number | null;
   onWeekChange: (week: number | null) => void;
+  showAll: boolean;
+  onShowAllChange: (showAll: boolean) => void;
   onRefresh: () => void;
-  onSignIn: () => void;
-  onRediscover: () => void;
+  onRediscover?: () => void;
+  onManage?: () => void;
   busy: boolean;
 }
 
@@ -19,93 +29,123 @@ function timeAgo(iso: string | undefined): string {
   const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
   if (s < 5) return "just now";
   if (s < 60) return `${s}s ago`;
-  const m = Math.round(s / 60);
-  return `${m}m ago`;
+  return `${Math.round(s / 60)}m ago`;
 }
 
-export function StatusBar({ data, auth, isValidating, week, onWeekChange, onRefresh, onSignIn, onRediscover, busy }: Props) {
+const stepper =
+  "flex w-8 items-center justify-center text-muted transition-colors hover:bg-surface-2 hover:text-foreground disabled:pointer-events-none disabled:opacity-30 pointer-coarse:w-11";
+
+export function StatusBar({
+  data,
+  title,
+  backHref,
+  configured,
+  canRescan,
+  isValidating,
+  week,
+  onWeekChange,
+  showAll,
+  onShowAllChange,
+  onRefresh,
+  onRediscover,
+  onManage,
+  busy,
+}: Props) {
   const live = data?.anyGamesLive ?? false;
   const shownWeek = week ?? data?.week ?? null;
   const currentWeek = data?.currentWeek ?? null;
-  const harvesting = auth?.harvesting ?? false;
-  const signedIn = data?.authOk ?? auth?.authOk ?? false;
+  const onPastWeek = shownWeek != null && currentWeek != null && shownWeek < currentWeek;
+
+  // Landing back on the current week drops the explicit week, so it polls live again.
+  const goTo = (w: number) => onWeekChange(currentWeek != null && w >= currentWeek ? null : w);
 
   return (
-    <header className="safe-top sticky top-0 z-10 border-b border-border bg-background/85 backdrop-blur">
-      <div className="safe-x mx-auto flex max-w-6xl flex-wrap items-center gap-3 py-3">
-        <h1 className="text-lg font-semibold tracking-tight">Fantasy Viewer</h1>
+    <header className="safe-top sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-md">
+      <div className="safe-x mx-auto flex h-14 max-w-[120rem] items-center gap-3">
+        {backHref && (
+          <Link href={backHref} className={`${buttonClass("ghost")} -ml-2 w-8 px-0 pointer-coarse:w-11`} aria-label="All Leagues">
+            <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+              <path d="M10 3 5 8l5 5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Link>
+        )}
+        <h1 className="min-w-0 truncate text-base font-semibold tracking-tight">{title ?? "Fantasy Viewer"}</h1>
 
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-            live ? "bg-accent-soft text-accent" : "bg-surface-2 text-muted"
-          }`}
-        >
-          <span className={`h-1.5 w-1.5 rounded-full ${live ? "bg-accent live-dot" : "bg-muted"}`} />
-          {live ? "Games live" : "Idle"}
-        </span>
+        {configured && (
+          <span className={`inline-flex shrink-0 items-center gap-1.5 text-[13px] ${live ? "font-medium text-live" : "text-muted"}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${live ? "bg-live-dot live-dot" : "bg-faint"}`} aria-hidden />
+            {live ? "Live" : "No Games On"}
+          </span>
+        )}
 
-        {shownWeek && (
-          <div className="inline-flex items-center overflow-hidden rounded-md border border-border text-sm">
-            <button
-              className="px-2 py-1 hover:bg-surface-2 disabled:opacity-40"
-              onClick={() => onWeekChange(Math.max(1, shownWeek - 1))}
-              disabled={shownWeek <= 1}
-              aria-label="Previous week"
-            >
-              ‹
-            </button>
-            <button
-              className="px-2 py-1 font-medium hover:bg-surface-2"
-              onClick={() => onWeekChange(null)}
-              title="Back to current week"
-            >
-              Week {shownWeek}
-              {currentWeek && shownWeek !== currentWeek ? <span className="ml-1 text-muted">(now {currentWeek})</span> : null}
-            </button>
-            <button
-              className="px-2 py-1 hover:bg-surface-2 disabled:opacity-40"
-              onClick={() => onWeekChange(Math.min(18, shownWeek + 1))}
-              disabled={currentWeek != null && shownWeek >= currentWeek}
-              aria-label="Next week"
-            >
-              ›
+        {configured && (
+          <div className="ml-auto flex shrink-0 items-center gap-3">
+            {data?.fetchedAt && (
+              <span className="hidden text-[13px] text-muted sm:inline">{isValidating ? "Updating…" : `Updated ${timeAgo(data.fetchedAt)}`}</span>
+            )}
+            <button onClick={onRefresh} disabled={busy} className={buttonClass()}>
+              {isValidating && (
+                <span className="h-3 w-3 animate-spin rounded-full border-[1.5px] border-current border-t-transparent" aria-hidden />
+              )}
+              Refresh
             </button>
           </div>
         )}
-
-        <div className="ml-auto flex items-center gap-2 text-xs text-muted">
-          {data?.fetchedAt && (
-            <span className="tabular-nums">
-              {isValidating ? "Updating…" : `Updated ${timeAgo(data.fetchedAt)}`}
-            </span>
-          )}
-          <button
-            onClick={onRefresh}
-            disabled={busy || isValidating}
-            className="rounded-md border border-border px-2.5 py-1 text-foreground hover:bg-surface-2 disabled:opacity-40"
-          >
-            Refresh
-          </button>
-          {signedIn ? (
-            <button
-              onClick={onRediscover}
-              disabled={busy}
-              className="rounded-md border border-border px-2.5 py-1 text-foreground hover:bg-surface-2 disabled:opacity-40"
-              title="Re-scan your ESPN account for leagues"
-            >
-              Rescan leagues
-            </button>
-          ) : (
-            <button
-              onClick={onSignIn}
-              disabled={harvesting}
-              className="rounded-md bg-accent px-3 py-1 font-medium text-background hover:brightness-110 disabled:opacity-60"
-            >
-              {harvesting ? "Waiting for login…" : "Sign in to ESPN"}
-            </button>
-          )}
-        </div>
       </div>
+
+      {configured && (
+        <div className="safe-x mx-auto flex max-w-[120rem] flex-wrap items-center gap-x-4 gap-y-2 pb-3">
+          {shownWeek && (
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 overflow-hidden rounded-md bg-surface shadow-control pointer-coarse:h-11">
+                <button className={stepper} onClick={() => goTo(shownWeek - 1)} disabled={shownWeek <= 1} aria-label="Previous Week">
+                  ‹
+                </button>
+                <span className="flex items-center border-x border-border px-3 text-[13px] font-medium">Week&nbsp;{shownWeek}</span>
+                <button
+                  className={stepper}
+                  onClick={() => goTo(shownWeek + 1)}
+                  disabled={currentWeek == null || shownWeek >= currentWeek}
+                  aria-label="Next Week"
+                >
+                  ›
+                </button>
+              </div>
+              {onPastWeek && (
+                <button onClick={() => onWeekChange(null)} className="text-[13px] font-medium text-accent hover:underline pointer-coarse:min-h-11">
+                  Back to Week&nbsp;{currentWeek}
+                </button>
+              )}
+            </div>
+          )}
+
+          <label className="inline-flex cursor-pointer items-center gap-2 text-[13px] font-medium pointer-coarse:min-h-11">
+            <input type="checkbox" role="switch" checked={showAll} onChange={(e) => onShowAllChange(e.target.checked)} className="peer sr-only" />
+            <span
+              className="relative h-5 w-9 rounded-full bg-surface-3 shadow-control transition-colors peer-checked:bg-accent-solid peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-solid"
+              aria-hidden
+            >
+              <span
+                className={`absolute top-0.5 h-4 w-4 rounded-full bg-foreground transition-[left] ${showAll ? "left-[1.125rem]" : "left-0.5"}`}
+              />
+            </span>
+            Show All Lineups
+          </label>
+
+          <div className="ml-auto flex items-center gap-2">
+            {canRescan && onRediscover && (
+              <button onClick={onRediscover} disabled={busy} className={buttonClass("ghost")} title="Look for new leagues on your ESPN account">
+                Rescan
+              </button>
+            )}
+            {onManage && (
+              <button onClick={onManage} disabled={busy} className={buttonClass()}>
+                Leagues
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 }

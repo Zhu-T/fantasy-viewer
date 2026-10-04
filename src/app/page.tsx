@@ -1,154 +1,182 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import useSWR from "swr";
 import { MatchupCard } from "@/components/MatchupCard";
+import { Notice, buttonClass, gridClass } from "@/components/ui";
+import { SetupPanel } from "@/components/SetupPanel";
 import { StatusBar } from "@/components/StatusBar";
+import { fetcher, type WithCacheFlag } from "@/components/fetcher";
+import { recordMatchups } from "@/components/useLastScorer";
+import { useDocumentTitle } from "@/components/useDocumentTitle";
+import { useShowAll } from "@/components/useShowAll";
+import { useWeekParam } from "@/components/useWeekParam";
 import type { AuthStatus, MatchupsResponse } from "@/lib/espn/types";
-
-type WithCacheFlag<T> = T & { fromCache?: boolean };
-
-async function fetcher<T>(url: string): Promise<WithCacheFlag<T>> {
-  const res = await fetch(url, { cache: "no-store" });
-  const body = (await res.json().catch(() => ({}))) as WithCacheFlag<T> & { error?: string };
-  if (!res.ok && res.status !== 401) throw new Error(body.error ?? `Request failed (${res.status})`);
-  // Set by the service worker when it had to fall back to the last good response.
-  if (res.headers.get("X-From-Cache") === "1") body.fromCache = true;
-  return body;
-}
 
 const IDLE_MS = 5 * 60_000;
 
-export default function Home() {
-  const [week, setWeek] = useState<number | null>(null);
+/** Drop the service worker's saved scores so the next person on this device can't see them. */
+async function clearOfflineScores() {
+  try {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((k) => k.startsWith("fv-data-")).map((k) => caches.delete(k)));
+  } catch {
+    /* Cache API unavailable */
+  }
+}
+
+// useSearchParams (the week lives in the URL) needs a Suspense boundary.
+export default function Page() {
+  return (
+    <Suspense>
+      <Home />
+    </Suspense>
+  );
+}
+
+function Home() {
+  const [week, setWeek] = useWeekParam();
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [setup, setSetup] = useState<null | "leagues" | "connect">(null);
+  const [showAll, setShowAll] = useShowAll();
 
   const matchupsKey = week ? `/api/matchups?week=${week}` : "/api/matchups";
   const matchups = useSWR<WithCacheFlag<MatchupsResponse>>(matchupsKey, fetcher, {
-    refreshInterval: (latest) => latest?.nextRefreshMs ?? IDLE_MS,
+    refreshInterval: (latest) => (latest && !latest.configured ? 0 : (latest?.nextRefreshMs ?? IDLE_MS)),
     revalidateOnFocus: true,
     dedupingInterval: 5_000,
     keepPreviousData: true,
   });
-
-  const needsAuth = matchups.data ? !matchups.data.authOk : false;
-  const auth = useSWR<AuthStatus>("/api/auth/status", fetcher, {
-    // Poll quickly while the login window is open or we're logged out; otherwise rarely.
-    refreshInterval: (latest) => (latest?.harvesting || needsAuth ? 2_000 : 60_000),
-  });
-
-  // Once a harvest completes (harvesting flips true -> false), pull fresh matchups.
-  const harvesting = auth.data?.harvesting ?? false;
-  const wasHarvesting = useRef(false);
-  const refetchMatchups = matchups.mutate;
-  useEffect(() => {
-    if (wasHarvesting.current && !harvesting) void refetchMatchups();
-    wasHarvesting.current = harvesting;
-  }, [harvesting, refetchMatchups]);
-
-  const runAction = useCallback(
-    async (url: string) => {
-      setBusy(true);
-      setActionError(null);
-      try {
-        const res = await fetch(url, { method: "POST" });
-        const body = (await res.json().catch(() => ({}))) as { error?: string };
-        if (!res.ok) throw new Error(body.error ?? `Request failed (${res.status})`);
-        await Promise.all([auth.mutate(), matchups.mutate()]);
-      } catch (err) {
-        setActionError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setBusy(false);
-      }
-    },
-    [auth, matchups],
-  );
+  const auth = useSWR<AuthStatus>("/api/auth/status", fetcher, { revalidateOnFocus: false });
 
   const data = matchups.data;
+  const configured = data?.configured ?? false;
+  const expired = data?.cookieState === "expired";
+
+  const rescan = useCallback(async () => {
+    setBusy(true);
+    setActionError(null);
+    try {
+      const res = await fetch("/api/leagues/refresh", { method: "POST" });
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(body.error ?? `Request failed (${res.status})`);
+      await matchups.mutate();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }, [matchups]);
+
+  /** After any change to leagues or the ESPN connection. */
+  const onSetupChanged = useCallback(async () => {
+    setActionError(null);
+    // Offline copies may belong to a previous setup on this device.
+    await clearOfflineScores();
+    await Promise.all([auth.mutate(), matchups.mutate()]);
+  }, [auth, matchups]);
+
   const leagues = data?.leagues ?? [];
   const errors = data?.errors ?? [];
+  const showSetup = (data != null && !configured) || setup != null;
+
+  // Diff each refresh against the last to find who just scored.
+  useEffect(() => {
+    if (data?.leagues && !data.fromCache) recordMatchups(data.leagues);
+  }, [data]);
+
+  useDocumentTitle(week ? `Week ${week} – Fantasy Viewer` : "Fantasy Viewer");
 
   return (
-    <main className="flex flex-1 flex-col">
+    <>
       <StatusBar
         data={data}
-        auth={auth.data}
+        configured={configured}
+        canRescan={!!auth.data?.hasCookies}
         isValidating={matchups.isValidating}
         week={week}
         onWeekChange={setWeek}
+        showAll={showAll}
+        onShowAllChange={setShowAll}
         onRefresh={() => void matchups.mutate()}
-        onSignIn={() => void runAction("/api/auth/login")}
-        onRediscover={() => void runAction("/api/leagues/refresh")}
+        onRediscover={() => void rescan()}
+        onManage={() => setSetup("leagues")}
         busy={busy}
       />
 
-      <section className="safe-x safe-bottom mx-auto w-full max-w-6xl flex-1 py-6">
-        {data?.fromCache && (
-          <p className="mb-4 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn">
-            You appear to be offline. Showing the last scores this device saw.
-          </p>
-        )}
-        {actionError && (
-          <p className="mb-4 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">{actionError}</p>
-        )}
-        {matchups.error && (
-          <p className="mb-4 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
-            {matchups.error.message}
-          </p>
+      <main id="main" className="safe-x safe-bottom mx-auto w-full max-w-[120rem] flex-1 py-6">
+        {data?.fromCache && <Notice tone="warn">You&apos;re offline. These are the last scores this device saw.</Notice>}
+        {actionError && <Notice tone="danger">{actionError}</Notice>}
+        {matchups.error && <Notice tone="danger">{matchups.error.message}</Notice>}
+        {expired && !showSetup && (
+          <Notice tone="warn">
+            {data?.message}{" "}
+            <button onClick={() => setSetup("connect")} className="font-medium underline underline-offset-2">
+              Reconnect ESPN
+            </button>
+          </Notice>
         )}
 
-        {needsAuth && (
-          <div className="mx-auto mt-16 max-w-md rounded-xl border border-border bg-surface p-6 text-center">
-            <h2 className="text-lg font-semibold">Connect your ESPN account</h2>
-            <p className="mt-2 text-sm text-muted">
-              {data?.authMessage ?? "Sign in to ESPN to load your leagues."} A browser window will open on this
-              machine; log in there and it will close automatically.
-            </p>
-            {auth.data?.lastError && <p className="mt-2 text-xs text-danger">{auth.data.lastError}</p>}
-            <button
-              onClick={() => void runAction("/api/auth/login")}
-              disabled={auth.data?.harvesting || busy}
-              className="mt-4 rounded-md bg-accent px-4 py-2 text-sm font-medium text-background hover:brightness-110 disabled:opacity-60"
-            >
-              {auth.data?.harvesting ? "Waiting for you to log in…" : "Sign in to ESPN"}
+        {showSetup && (
+          <SetupPanel
+            // Remount when switching straight to the connect form.
+            key={setup ?? "onboarding"}
+            auth={auth.data}
+            notice={expired ? data?.message : undefined}
+            connectFirst={setup === "connect"}
+            onChanged={onSetupChanged}
+            onClose={configured ? () => setSetup(null) : undefined}
+          />
+        )}
+
+        {!showSetup && matchups.isLoading && (
+          <div className={gridClass(false)}>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="skeleton h-[9.5rem] rounded-xl" />
+            ))}
+          </div>
+        )}
+
+        {!showSetup && data && configured && leagues.length === 0 && !matchups.isLoading && (
+          <div className="mx-auto mt-20 max-w-sm text-center">
+            <h2 className="text-lg font-semibold">No Matchups to Show</h2>
+            <p className="mt-1 text-sm text-muted">Add a league to see this week&apos;s matchup here.</p>
+            <button onClick={() => setSetup("leagues")} className={`mt-5 ${buttonClass("primary", "md")}`}>
+              Add League
             </button>
           </div>
         )}
 
-        {!needsAuth && matchups.isLoading && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="h-32 animate-pulse rounded-xl border border-border bg-surface" />
-            ))}
-          </div>
-        )}
-
-        {!needsAuth && data && leagues.length === 0 && !matchups.isLoading && (
-          <div className="mx-auto mt-16 max-w-md rounded-xl border border-border bg-surface p-6 text-center text-sm text-muted">
-            No leagues found for the {data.season} season. Try <b>Rescan leagues</b>, or add league IDs to{" "}
-            <code>LEAGUE_IDS</code> in <code>.env.local</code>.
-          </div>
-        )}
-
-        {leagues.length > 0 && (
-          <div className="grid gap-4 sm:grid-cols-2">
+        {!showSetup && leagues.length > 0 && (
+          <div className={gridClass(showAll)}>
             {leagues.map((m) => (
-              <MatchupCard key={m.leagueId} m={m} />
+              // Re-key on "Show all" so every card picks up the new default.
+              <MatchupCard
+                key={`${m.leagueId}-${showAll}`}
+                m={m}
+                lineupsOpen={showAll}
+                leagueHref={`/league/${m.leagueId}${week ? `?week=${week}` : ""}`}
+              />
             ))}
           </div>
         )}
 
-        {errors.length > 0 && (
-          <ul className="mt-6 space-y-1 text-xs text-danger/90">
+        {!showSetup && errors.length > 0 && (
+          <ul className="mt-6 space-y-1 text-sm text-danger">
             {errors.map((e) => (
               <li key={e.leagueId}>
-                <span className="font-medium">{e.leagueName ?? e.leagueId}:</span> {e.error}
+                <span className="font-medium">{e.leagueName ?? `League ${e.leagueId}`}:</span> {e.error}
+                {e.needsCookies && (
+                  <button onClick={() => setSetup("connect")} className="ml-1 font-medium text-accent hover:underline">
+                    Connect ESPN
+                  </button>
+                )}
               </li>
             ))}
           </ul>
         )}
-      </section>
-    </main>
+      </main>
+    </>
   );
 }

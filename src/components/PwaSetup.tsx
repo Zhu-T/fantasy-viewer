@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { buttonClass } from "./ui";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -29,6 +30,16 @@ function readEnv(): string {
 // Server snapshot: pretend we're installed + dismissed so nothing renders until hydrated.
 const serverEnv = () => "101";
 
+async function clearServiceWorkers() {
+  const regs = await navigator.serviceWorker.getRegistrations().catch(() => []);
+  if (!regs.length) return;
+  await Promise.all(regs.map((r) => r.unregister()));
+  const keys = await caches.keys().catch(() => []);
+  await Promise.all(keys.filter((k) => k.startsWith("fv-")).map((k) => caches.delete(k)));
+  // The page that just loaded may itself have come from the stale cache.
+  window.location.reload();
+}
+
 /**
  * Registers the service worker (production only; it fights HMR in dev) and
  * shows a small install banner when the browser says the app is installable,
@@ -42,8 +53,14 @@ export function PwaSetup() {
   const dismissed = env[2] === "1";
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }).catch(() => undefined);
+    if ("serviceWorker" in navigator) {
+      if (process.env.NODE_ENV === "production") {
+        navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }).catch(() => undefined);
+      } else {
+        // A worker left over from a production run on this origin would keep serving
+        // stale cached JS to the dev server and break the page after a reload.
+        void clearServiceWorkers();
+      }
     }
 
     const onPrompt = (e: Event) => {
@@ -77,9 +94,9 @@ export function PwaSetup() {
 
   return (
     <div className="border-b border-border bg-surface">
-      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2 text-sm">
+      <div className="safe-x mx-auto flex max-w-[120rem] items-center gap-3 py-2 text-[13px]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icons/icon-192.png" alt="" className="h-7 w-7 rounded-md" />
+        <img src="/icons/icon-192.png" alt="" width={28} height={28} className="h-7 w-7 rounded-md" />
         <span className="min-w-0 flex-1 text-muted">
           {installEvent ? (
             "Install Fantasy Viewer for a full-screen, app-like experience."
@@ -91,11 +108,11 @@ export function PwaSetup() {
           )}
         </span>
         {installEvent && (
-          <button onClick={install} className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-background hover:brightness-110">
+          <button onClick={install} className={buttonClass("primary")}>
             Install
           </button>
         )}
-        <button onClick={dismiss} className="rounded-md px-2 py-1 text-xs text-muted hover:bg-surface-2 hover:text-foreground" aria-label="Dismiss">
+        <button onClick={dismiss} className={`${buttonClass("ghost")} w-8 px-0 pointer-coarse:w-11`} aria-label="Dismiss Install Banner">
           ✕
         </button>
       </div>

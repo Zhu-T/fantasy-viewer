@@ -15,6 +15,12 @@ export interface ProGame {
   opponent: string;
   kickoff: string;
   kickoffIso?: string;
+  /** Live only, when ESPN reports possession: true if this team has the ball. */
+  hasBall?: boolean;
+  /** This team has the ball inside the opponent's 20. */
+  redZone?: boolean;
+  /** e.g. "2nd & Goal at DEN 2" */
+  downDistance?: string;
 }
 
 export interface NflWeekState {
@@ -34,7 +40,9 @@ interface ScoreboardResponse {
     competitions?: Array<{
       date?: string;
       status?: { type?: { state?: string; shortDetail?: string } };
-      competitors?: Array<{ team?: { abbreviation?: string } }>;
+      competitors?: Array<{ team?: { id?: string; abbreviation?: string } }>;
+      /** Live game state: who has the ball (team id) and where. */
+      situation?: { possession?: string; isRedZone?: boolean; downDistanceText?: string };
     }>;
   }>;
 }
@@ -43,6 +51,9 @@ const SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/n
 
 let cache: { at: number; value: NflWeekState } | null = null;
 const CACHE_MS = 10_000;
+/** Past weeks barely change; keep them longer. */
+const weekCache = new Map<string, { at: number; value: NflWeekState }>();
+const WEEK_CACHE_MS = 10 * 60_000;
 
 function normalizeState(raw: string | undefined): GameState {
   if (raw === "pre" || raw === "in" || raw === "post") return raw;
@@ -62,7 +73,10 @@ function kickoffLabel(iso: string | undefined): string {
  */
 export async function getNflWeekState(opts: { week?: number; season?: number } = {}): Promise<NflWeekState> {
   const keyed = !opts.week;
+  const weekKey = `${opts.season ?? ""}:${opts.week ?? ""}`;
   if (keyed && cache && Date.now() - cache.at < CACHE_MS) return cache.value;
+  const hit = weekCache.get(weekKey);
+  if (!keyed && hit && Date.now() - hit.at < WEEK_CACHE_MS) return hit.value;
 
   const url = new URL(SCOREBOARD_URL);
   if (opts.week) {
@@ -85,6 +99,10 @@ export async function getNflWeekState(opts: { week?: number; season?: number } =
     if (state === "in") anyLive = true;
     const kickoffIso = comp?.date ?? ev.date;
     const kickoff = kickoffLabel(kickoffIso);
+    const situation = state === "in" ? comp?.situation : undefined;
+    const withBall = situation?.possession
+      ? comp?.competitors?.find((c) => c.team?.id === situation.possession)?.team?.abbreviation
+      : undefined;
     for (const t of teams) {
       byTeam[t] = {
         state,
@@ -92,6 +110,11 @@ export async function getNflWeekState(opts: { week?: number; season?: number } =
         opponent: teams.find((o) => o !== t) ?? "",
         kickoff,
         kickoffIso,
+        ...(withBall && {
+          hasBall: withBall === t,
+          redZone: withBall === t && !!situation?.isRedZone,
+          downDistance: situation?.downDistanceText,
+        }),
       };
     }
   }
@@ -104,6 +127,7 @@ export async function getNflWeekState(opts: { week?: number; season?: number } =
     fetchedAt: new Date().toISOString(),
   };
   if (keyed) cache = { at: Date.now(), value };
+  else weekCache.set(weekKey, { at: Date.now(), value });
   return value;
 }
 

@@ -1,46 +1,154 @@
 @import "tailwindcss";
 
+/*
+ * Dark only. Surfaces & text follow Material's dark palette: base #121212,
+ * cards #1E1E1E, raised panels #272727, text #E0E0E0 / #B0B0B0. Accents and
+ * the token structure come from Vercel's Geist (dark).
+ */
 :root {
-  --background: #0b0f14;
-  --surface: #121821;
-  --surface-2: #1a2230;
-  --border: #243040;
-  --foreground: #e6edf3;
-  --muted: #8b98a8;
-  --accent: #34d399;
-  --accent-soft: rgba(52, 211, 153, 0.15);
-  --danger: #f87171;
-  --warn: #fbbf24;
+  --ds-background-100: #1e1e1e; /* cards */
+  --ds-background-200: #121212; /* page */
+  --ds-gray-100: #272727; /* raised panels, hover */
+  --ds-gray-200: #2f2f2f; /* hover on raised, active */
+  --ds-gray-300: #383838;
+  --ds-gray-400: #3d3d3d;
+  --ds-gray-500: #4a4a4a;
+  --ds-gray-600: #6b6b6b;
+  --ds-gray-700: #8a8a8a; /* tertiary text, placeholders */
+  --ds-gray-900: #b0b0b0; /* secondary text */
+  --ds-gray-1000: #e0e0e0; /* primary text */
+  --ds-gray-alpha-100: #ffffff0d;
+  --ds-gray-alpha-200: #ffffff14;
+  --ds-gray-alpha-400: #ffffff1a;
+  --ds-gray-alpha-500: #ffffff2e;
+  --ds-blue-100: #06193a;
+  --ds-blue-700: #0071f6;
+  --ds-blue-900: #50a8ff;
+  --ds-red-100: #330a11;
+  --ds-red-700: #f13242;
+  --ds-red-900: #ff5e63;
+  --ds-green-100: #00250a;
+  --ds-green-700: #00ab3e;
+  --ds-green-900: #00ca52;
+  --ds-amber-100: #291800;
+  --ds-amber-700: #ffb200;
+  --ds-amber-900: #ff9900;
+
+  /* Layered: a crisp semi-transparent hairline + ambient + direct light. */
+  --shadow-card: 0 0 0 1px var(--ds-gray-alpha-400), 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 16px -6px rgb(0 0 0 / 0.5);
+  --shadow-raised: 0 0 0 1px var(--ds-gray-alpha-400), 0 2px 4px rgb(0 0 0 / 0.3), 0 12px 32px -8px rgb(0 0 0 / 0.55);
+  --shadow-control: 0 0 0 1px var(--ds-gray-alpha-400), 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-control-hover: 0 0 0 1px var(--ds-gray-alpha-500), 0 1px 2px rgb(0 0 0 / 0.4);
+  color-scheme: dark;
 }
 
+/* Semantic names used by the components, mapped onto Geist steps. */
 @theme inline {
-  --color-background: var(--background);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-border: var(--border);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-accent: var(--accent);
-  --color-accent-soft: var(--accent-soft);
-  --color-danger: var(--danger);
-  --color-warn: var(--warn);
+  --color-background: var(--ds-background-200);
+  --color-surface: var(--ds-background-100);
+  --color-surface-2: var(--ds-gray-100);
+  --color-surface-3: var(--ds-gray-200);
+  --color-raised: var(--ds-gray-100);
+  --color-border: var(--ds-gray-alpha-400);
+  --color-border-strong: var(--ds-gray-alpha-500);
+  --color-foreground: var(--ds-gray-1000);
+  --color-muted: var(--ds-gray-900);
+  --color-faint: var(--ds-gray-700);
+  --color-inverse: var(--ds-background-100);
+  --color-accent: var(--ds-blue-900);
+  --color-accent-solid: var(--ds-blue-700);
+  --color-accent-soft: var(--ds-blue-100);
+  --color-flag: var(--ds-amber-700);
+  --color-live: var(--ds-red-900);
+  --color-live-dot: var(--ds-red-700);
+  --color-win: var(--ds-green-900);
+  --color-win-soft: var(--ds-green-100);
+  --color-danger: var(--ds-red-900);
+  --color-danger-soft: var(--ds-red-100);
+  --color-warn: var(--ds-amber-900);
+  --color-warn-soft: var(--ds-amber-100);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
+@utility shadow-card {
+  box-shadow: var(--shadow-card);
+}
+@utility shadow-raised {
+  box-shadow: var(--shadow-raised);
+}
+@utility shadow-control {
+  box-shadow: var(--shadow-control);
+}
+@utility shadow-control-hover {
+  box-shadow: var(--shadow-control-hover);
+}
+
+html {
+  background: var(--ds-background-200);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--ds-background-200);
+  color: var(--ds-gray-1000);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a,
+button,
+label,
+input,
+select,
+textarea,
+summary {
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ds-blue-700);
+  outline-offset: 2px;
 }
 
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
+  50% { opacity: 0.3; }
 }
-
 .live-dot {
   animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+/* Lineups unfolding under a matchup when opened. */
+@keyframes unfold {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+.unfold {
+  animation: unfold 180ms ease-out;
+}
+
+/* Skeletons wait ~200ms before appearing so fast loads never flash them. */
+@keyframes appear {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes shimmer {
+  0%, 100% { background-color: var(--ds-gray-100); }
+  50% { background-color: var(--ds-gray-200); }
+}
+.skeleton {
+  animation: appear 150ms ease-out 200ms both, shimmer 1.6s ease-in-out 350ms infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot,
+  .unfold {
+    animation: none;
+  }
+  .skeleton {
+    animation: appear 0s 200ms both;
+  }
 }
 
 /* Keep content clear of notches / home indicators when installed full-screen. */

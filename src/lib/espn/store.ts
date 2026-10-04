@@ -1,35 +1,8 @@
-import fs from "node:fs";
-import path from "node:path";
-
 /**
- * Small JSON-on-disk helpers plus a process-wide singleton bag. Module-level
- * state gets reset by Next's dev HMR, so anything that must survive across
- * requests (auth state, in-flight harvest, response cache) hangs off globalThis.
+ * Per-instance, best-effort state (response caches). On Vercel each warm
+ * function instance keeps its own copy; module-level state is also reset by
+ * Next's dev HMR, hence hanging it off globalThis.
  */
-
-export const DATA_DIR = path.join(process.cwd(), "data");
-
-export function readJson<T>(file: string): T | null {
-  try {
-    const raw = fs.readFileSync(path.join(DATA_DIR, file), "utf8");
-    return JSON.parse(raw) as T;
-  } catch {
-    return null;
-  }
-}
-
-export function writeJson(file: string, value: unknown): void {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(path.join(DATA_DIR, file), JSON.stringify(value, null, 2), "utf8");
-}
-
-export function deleteJson(file: string): void {
-  try {
-    fs.unlinkSync(path.join(DATA_DIR, file));
-  } catch {
-    /* ignore */
-  }
-}
 
 type GlobalBag = Record<string, unknown>;
 

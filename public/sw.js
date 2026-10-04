@@ -2,11 +2,11 @@
  *
  * - App shell + Next static assets: cache-first (hashed, safe to keep).
  * - Navigations: network-first, fall back to the cached shell when offline.
- * - /api/matchups: network-first; when offline, serve the last good response
+ * - /api/matchups, /api/league: network-first; when offline, serve the last good response
  *   so the app can still show the most recent scores it saw.
  * - Everything else (other /api routes, ESPN images): straight to network.
  */
-const VERSION = "v1";
+const VERSION = "v3";
 const SHELL_CACHE = `fv-shell-${VERSION}`;
 const DATA_CACHE = `fv-data-${VERSION}`;
 const SHELL_URLS = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
@@ -47,7 +47,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(cacheFirst(request, SHELL_CACHE));
     return;
   }
-  if (url.pathname === "/api/matchups") {
+  if (url.pathname === "/api/matchups" || url.pathname === "/api/league") {
     event.respondWith(networkFirstData(request));
     return;
   }
@@ -67,10 +67,11 @@ async function networkFirstShell(request) {
   const cache = await caches.open(SHELL_CACHE);
   try {
     const res = await fetch(request);
-    if (res.ok) cache.put("/", res.clone());
+    if (res.ok) cache.put(new URL(request.url).pathname === "/" ? "/" : request, res.clone());
     return res;
   } catch {
-    return (await cache.match("/")) || Response.error();
+    // Offline: the cached page for this exact URL (e.g. a league page), else the home shell.
+    return (await cache.match(request)) || (await cache.match("/")) || Response.error();
   }
 }
 

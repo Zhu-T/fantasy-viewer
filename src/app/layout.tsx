@@ -8,6 +8,7 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+/* Clocks, kickoff times, lineup slots and team codes. */
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Fantasy",
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "black",
   },
   formatDetection: { telephone: false },
   icons: {
@@ -34,7 +35,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0f14",
+  themeColor: "#121212",
+  colorScheme: "dark",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -43,7 +45,13 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-full flex-col">
+        <a
+          href="#main"
+          className="sr-only z-50 rounded-md bg-surface px-3 py-2 text-sm font-medium shadow-card focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        >
+          Skip to Content
+        </a>
         <PwaSetup />
         {children}
       </body>
