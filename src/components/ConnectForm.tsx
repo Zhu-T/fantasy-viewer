@@ -53,8 +53,8 @@ export function ConnectForm({ message, onConnected, onCancel }: Props) {
       <ol className="mt-4 list-decimal space-y-1.5 pl-5 text-sm text-muted marker:text-faint">
         <li>
           Open{" "}
-          <a href="https://fantasy.espn.com/football/" target="_blank" rel="noreferrer" className="font-medium text-accent hover:underline">
-            fantasy.espn.com/football
+          <a href="https://www.espn.com/fantasy/" target="_blank" rel="noreferrer" className="font-medium text-accent hover:underline">
+            espn.com/fantasy
           </a>{" "}
           and make sure you&apos;re logged in.
         </li>

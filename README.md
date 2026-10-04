@@ -24,7 +24,7 @@ One page that shows **your matchup in every ESPN fantasy football league you're 
 
 **Private leagues (most leagues):** ESPN refuses anonymous requests, so the app needs your login cookies. ESPN has no public login API, so the app uses the two cookies every ESPN fantasy tool relies on:
 
-1. Log in at fantasy.espn.com on a computer.
+1. Log in at [espn.com/fantasy](https://www.espn.com/fantasy/) on a computer.
 2. DevTools (F12) → **Application** (Chrome/Edge) or **Storage** (Firefox) → **Cookies** → `https://fantasy.espn.com`.
 3. Paste `espn_s2` and `SWID` into the form. You can also paste a whole cookie string; the form picks the two values out.
 
