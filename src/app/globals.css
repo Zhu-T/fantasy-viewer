@@ -59,6 +59,9 @@
   --color-accent-solid: var(--ds-blue-700);
   --color-accent-soft: var(--ds-blue-100);
   --color-flag: var(--ds-amber-700);
+  /* Win probability bar: left team blue (accent), right team red. */
+  --color-versus: var(--ds-red-900);
+  --color-versus-solid: var(--ds-red-700);
   --color-live: var(--ds-red-900);
   --color-live-dot: var(--ds-red-700);
   --color-win: var(--ds-green-900);

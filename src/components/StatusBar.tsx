@@ -32,6 +32,12 @@ function timeAgo(iso: string | undefined): string {
   return `${Math.round(s / 60)}m ago`;
 }
 
+/** Every week up to the current one (or the one shown, if later), newest first. */
+function weekOptions(shown: number, current: number | null): number[] {
+  const last = Math.min(18, Math.max(shown, current ?? shown));
+  return Array.from({ length: last }, (_, i) => last - i);
+}
+
 const stepper =
   "flex w-8 items-center justify-center text-muted transition-colors hover:bg-surface-2 hover:text-foreground disabled:pointer-events-none disabled:opacity-30 pointer-coarse:w-11";
 
@@ -54,7 +60,6 @@ export function StatusBar({
   const live = data?.anyGamesLive ?? false;
   const shownWeek = week ?? data?.week ?? null;
   const currentWeek = data?.currentWeek ?? null;
-  const onPastWeek = shownWeek != null && currentWeek != null && shownWeek < currentWeek;
 
   // Landing back on the current week drops the explicit week, so it polls live again.
   const goTo = (w: number) => onWeekChange(currentWeek != null && w >= currentWeek ? null : w);
@@ -96,26 +101,43 @@ export function StatusBar({
       {configured && (
         <div className="safe-x mx-auto flex max-w-[120rem] flex-wrap items-center gap-x-4 gap-y-2 pb-3">
           {shownWeek && (
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 overflow-hidden rounded-md bg-surface shadow-control pointer-coarse:h-11">
-                <button className={stepper} onClick={() => goTo(shownWeek - 1)} disabled={shownWeek <= 1} aria-label="Previous Week">
-                  ‹
-                </button>
-                <span className="flex items-center border-x border-border px-3 text-[13px] font-medium">Week&nbsp;{shownWeek}</span>
-                <button
-                  className={stepper}
-                  onClick={() => goTo(shownWeek + 1)}
-                  disabled={currentWeek == null || shownWeek >= currentWeek}
-                  aria-label="Next Week"
+            <div className="flex h-8 overflow-hidden rounded-md bg-surface shadow-control pointer-coarse:h-11">
+              <button className={stepper} onClick={() => goTo(shownWeek - 1)} disabled={shownWeek <= 1} aria-label="Previous Week">
+                ‹
+              </button>
+              {/* Native select: keyboard-friendly, and phones get their own picker. Newest week first. */}
+              <label className="relative flex items-center border-x border-border transition-colors hover:bg-surface-2">
+                <select
+                  aria-label="Week"
+                  value={shownWeek}
+                  onChange={(e) => goTo(Number(e.target.value))}
+                  className="h-full cursor-pointer appearance-none bg-transparent pl-3 pr-7 text-[13px] font-medium text-foreground focus-visible:outline-offset-[-2px] [&>option]:bg-raised [&>option]:text-foreground"
                 >
-                  ›
-                </button>
-              </div>
-              {onPastWeek && (
-                <button onClick={() => onWeekChange(null)} className="text-[13px] font-medium text-accent hover:underline pointer-coarse:min-h-11">
-                  Back to Week&nbsp;{currentWeek}
-                </button>
-              )}
+                  {weekOptions(shownWeek, currentWeek).map((w) => (
+                    <option key={w} value={w}>
+                      Week {w}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  viewBox="0 0 16 16"
+                  className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-muted"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  aria-hidden
+                >
+                  <path d="m4 6 4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </label>
+              <button
+                className={stepper}
+                onClick={() => goTo(shownWeek + 1)}
+                disabled={currentWeek == null || shownWeek >= currentWeek}
+                aria-label="Next Week"
+              >
+                ›
+              </button>
             </div>
           )}
 

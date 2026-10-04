@@ -117,7 +117,7 @@ const ROW_GRID =
 
 /**
  * ESPN's win probability, FantasyCast style: under "Pts / Proj", each team's
- * percentage sits on its own side of a bar (left team blue, right team grey).
+ * percentage sits on its own side of a bar (left team blue, right team red).
  * Hidden when ESPN sends none or the matchup is final.
  */
 function WinProbability({ me, opponent }: { me: TeamSide; opponent: TeamSide }) {
@@ -127,14 +127,14 @@ function WinProbability({ me, opponent }: { me: TeamSide; opponent: TeamSide }) 
   const right = formatProbability(1 - p);
   return (
     <div className={`${ROW_GRID} pb-2`} role="img" aria-label={`ESPN win probability: ${me.name} ${left}, ${opponent.name} ${right}`}>
-      <span className="text-right text-[13px] font-semibold" aria-hidden>
+      <span className="text-right text-[13px] font-semibold text-accent" aria-hidden>
         {left}
       </span>
-      <div className="col-span-3 flex h-1.5 overflow-hidden rounded-full" aria-hidden>
+      <div className="col-span-3 flex h-1.5 gap-0.5 overflow-hidden rounded-full" aria-hidden>
         <div className="h-full bg-accent-solid transition-[width] duration-500 motion-reduce:transition-none" style={{ width: `${p * 100}%` }} />
-        <div className="h-full flex-1 bg-faint" />
+        <div className="h-full flex-1 bg-versus-solid" />
       </div>
-      <span className="text-[13px] font-semibold" aria-hidden>
+      <span className="text-[13px] font-semibold text-versus" aria-hidden>
         {right}
       </span>
     </div>
