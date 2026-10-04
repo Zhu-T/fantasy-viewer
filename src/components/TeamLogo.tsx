@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 
-/** Team logo, or a generic profile icon when there's none or it fails to load. */
-export function TeamLogo({ src, className = "h-9 w-9" }: { src?: string; className?: string }) {
+/**
+ * Team logo or player photo, or a generic profile icon when there's none or it
+ * fails to load. `faceTop` anchors the crop to the top, for headshots.
+ */
+export function TeamLogo({ src, className = "h-9 w-9", faceTop = false }: { src?: string; className?: string; faceTop?: boolean }) {
   const [failed, setFailed] = useState(false);
 
   if (!src || failed) {
@@ -22,7 +25,11 @@ export function TeamLogo({ src, className = "h-9 w-9" }: { src?: string; classNa
     <img
       src={src}
       alt=""
-      className={`${className} shrink-0 rounded-full bg-surface-2 object-cover`}
+      width={64}
+      height={64}
+      loading="lazy"
+      decoding="async"
+      className={`${className} shrink-0 rounded-full bg-surface-2 object-cover ${faceTop ? "object-top" : ""}`}
       onError={() => setFailed(true)}
       // An image that failed before React hydrated never fires onError for us.
       ref={(el) => {
