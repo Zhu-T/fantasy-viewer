@@ -21,6 +21,12 @@ function redZoneCount(side: TeamSide): number {
   return side.starters.filter((p) => p.gameState === "in" && p.redZone).length;
 }
 
+/** The last scorer is only worth calling out while their game is still on. */
+function whilePlaying(scorer: LastScorer | undefined, side: TeamSide | null): LastScorer | undefined {
+  if (!scorer || !side) return undefined;
+  return side.starters.some((p) => p.id === scorer.playerId && p.gameState === "in") ? scorer : undefined;
+}
+
 /** One team: logo, name, record and progress on the left, score and projection on the right. */
 function TeamRow({
   side,
@@ -125,8 +131,8 @@ export function MatchupCard({
   const meAhead = !!opp && started && m.me.points > opp.points;
   const oppAhead = !!opp && started && opp.points > m.me.points;
   const highlight = inLeague && m.involvesMe;
-  const meScorer = useLastScorer(m.leagueId, m.week, m.me.teamId);
-  const oppScorer = useLastScorer(m.leagueId, m.week, opp?.teamId);
+  const meScorer = whilePlaying(useLastScorer(m.leagueId, m.week, m.me.teamId), m.me);
+  const oppScorer = whilePlaying(useLastScorer(m.leagueId, m.week, opp?.teamId), opp);
 
   return (
     <article className={`min-w-0 overflow-hidden ${cardClass} ${highlight ? "outline outline-1 outline-accent-solid" : ""}`}>
