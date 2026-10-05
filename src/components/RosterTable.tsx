@@ -56,8 +56,10 @@ function Half({ p, side, changes }: { p: PlayerLine | undefined; side: "left" | 
   // Points moved in the last minute: name and points in green (gain) or red (loss), change under the points.
   const changed: PointChange | undefined = changes?.[String(p.id)];
   const changeColor = changed ? changeClass(changed.delta) : "";
+  // FantasyCast-style: anyone whose game isn't in progress (not started, over, bye) is greyed out.
+  const idle = p.gameState !== "in" ? "opacity-50" : "";
   const points = (
-    <div className={`w-10 shrink-0 sm:w-12 ${right ? "text-left" : "text-right"}`}>
+    <div className={`w-10 shrink-0 transition-opacity sm:w-12 ${idle} ${right ? "text-left" : "text-right"}`}>
       <div
         className={`text-[15px] font-semibold leading-tight ${changed ? changeColor : p.gameState === "pre" || p.gameState === "bye" ? "text-muted" : ""}`}
       >
@@ -72,7 +74,7 @@ function Half({ p, side, changes }: { p: PlayerLine | undefined; side: "left" | 
   );
   const photo = photoUrl(p);
   const who = (
-    <div className={`flex min-w-0 items-center gap-2 ${right ? "flex-row-reverse" : ""}`}>
+    <div className={`flex min-w-0 items-center gap-2 transition-opacity ${idle} ${right ? "flex-row-reverse" : ""}`}>
       {/* Phones skip the photo: the lineup columns are too narrow there. */}
       <span className="hidden shrink-0 sm:block">
         <TeamLogo key={photo} src={photo} seed={p.id || undefined} faceTop={p.position !== "D/ST"} className="h-8 w-8" />
