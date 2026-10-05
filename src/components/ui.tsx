@@ -51,11 +51,20 @@ export function gridClass(lineupsOpen: boolean): string {
     : "grid items-start gap-4 grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))]";
 }
 
-const points = new Intl.NumberFormat(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const points = new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const projection = new Intl.NumberFormat(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-/** Fantasy points in the viewer's locale, always one decimal; "–" when unknown. */
+/**
+ * Fantasy points exactly as ESPN scores them (ESPN keeps two decimals, e.g.
+ * 18.48 from 0.04/passing yard), in the viewer's locale; "–" when unknown.
+ */
 export function formatPoints(n: number | null | undefined): string {
   return n == null ? "–" : points.format(n);
+}
+
+/** Projections are estimates, so one decimal is plenty (as ESPN shows them). */
+export function formatProjection(n: number | null | undefined): string {
+  return n == null ? "–" : projection.format(n);
 }
 
 const percent = new Intl.NumberFormat(undefined, { style: "percent", maximumFractionDigits: 0 });

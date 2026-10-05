@@ -1,7 +1,7 @@
 "use client";
 
 import type { PlayerLine, TeamSide } from "@/lib/espn/types";
-import { formatKickoff, formatPoints, formatProbability } from "./ui";
+import { formatKickoff, formatPoints, formatProbability, formatProjection } from "./ui";
 import { TeamLogo } from "./TeamLogo";
 import type { LastScorer } from "./useLastScorer";
 
@@ -65,7 +65,7 @@ function Half({ p, side, scorer }: { p: PlayerLine | undefined; side: "left" | "
       {scored ? (
         <div className="text-[11px] font-medium text-win">+{formatPoints(scorer.delta)}</div>
       ) : (
-        p.gameState !== "post" && p.projected != null && <div className="text-[11px] text-muted">{formatPoints(p.projected)}</div>
+        p.gameState !== "post" && p.projected != null && <div className="text-[11px] text-muted">{formatProjection(p.projected)}</div>
       )}
     </div>
   );

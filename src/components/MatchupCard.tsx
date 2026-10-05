@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { MyMatchup, TeamSide } from "@/lib/espn/types";
 import { RosterTable } from "./RosterTable";
 import { TeamLogo } from "./TeamLogo";
-import { cardClass, formatKickoff, formatPoints } from "./ui";
+import { cardClass, formatKickoff, formatPoints, formatProjection } from "./ui";
 import { useLastScorer, type LastScorer } from "./useLastScorer";
 
 /** Progress line: players on the field now in red, players still to play in yellow. */
@@ -49,7 +49,7 @@ function TeamRow({ side, ahead, final, scorer }: { side: TeamSide; ahead: boolea
       </div>
       <div className="shrink-0 text-right">
         <div className={`text-[28px] font-semibold leading-none tracking-tight ${ahead ? "" : "text-muted"}`}>{formatPoints(side.points)}</div>
-        {!final && side.projected != null && <div className="mt-1 text-xs text-muted">Proj&nbsp;{formatPoints(side.projected)}</div>}
+        {!final && side.projected != null && <div className="mt-1 text-xs text-muted">Proj&nbsp;{formatProjection(side.projected)}</div>}
       </div>
     </div>
   );
