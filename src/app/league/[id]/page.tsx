@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import useSWR from "swr";
 import { fetcher, type WithCacheFlag } from "@/components/fetcher";
-import { Notice, gridClass } from "@/components/ui";
+import { Notice, buttonClass, gridClass } from "@/components/ui";
 import { MatchupCard } from "@/components/MatchupCard";
 import { StatusBar } from "@/components/StatusBar";
 import { recordMatchups } from "@/components/useLastScorer";
@@ -102,11 +102,16 @@ function LeaguePage() {
         )}
 
         {data && (
-          <p className="mt-10 text-center text-[13px]">
-            <a href={data.leagueUrl} target="_blank" rel="noreferrer" className="text-muted hover:text-foreground hover:underline">
+          <div className="mt-10 flex justify-center">
+            {/* A link (it leaves the app) styled as a button. */}
+            <a href={data.leagueUrl} target="_blank" rel="noreferrer" className={buttonClass("secondary", "md")}>
               Open {data.leagueName} on ESPN
+              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-muted" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+                <path d="M9 3h4v4M13 3 7.5 8.5M11 9.5V12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="sr-only">(opens in a new tab)</span>
             </a>
-          </p>
+          </div>
         )}
       </main>
     </>

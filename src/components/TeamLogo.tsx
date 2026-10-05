@@ -28,6 +28,8 @@ export function TeamLogo({ src, className = "h-9 w-9", faceTop = false }: { src?
       width={64}
       height={64}
       loading="lazy"
+      // Some image hosts refuse hotlinked requests that carry another site's referrer.
+      referrerPolicy="no-referrer"
       decoding="async"
       className={`${className} shrink-0 rounded-full bg-surface-2 object-cover ${faceTop ? "object-top" : ""}`}
       onError={() => setFailed(true)}

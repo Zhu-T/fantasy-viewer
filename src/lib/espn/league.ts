@@ -143,7 +143,7 @@ export async function lookupLeague(leagueId: string, season: number, cookies: Es
     leagueName: raw.settings?.name ?? `League ${leagueId}`,
     teams: (raw.teams ?? [])
       .filter((t) => t.id != null)
-      .map((t) => ({ id: t.id!, name: teamDisplayName(t), abbrev: t.abbrev ?? "", logo: t.logo }))
+      .map((t) => ({ id: t.id!, name: teamDisplayName(t), abbrev: t.abbrev ?? "", logo: secureImageUrl(t.logo) }))
       .sort((a, b) => a.name.localeCompare(b.name)),
     myTeamId: mine?.id,
   };
@@ -153,6 +153,17 @@ export async function lookupLeague(leagueId: string, season: number, cookies: Es
 
 function round(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+/**
+ * Team logos are whatever URL the owner picked; older ones can be http:// or
+ * protocol-relative, which an HTTPS page won't load. Force https.
+ */
+function secureImageUrl(url: string | undefined): string | undefined {
+  const u = url?.trim();
+  if (!u) return undefined;
+  if (u.startsWith("//")) return `https:${u}`;
+  return u.replace(/^http:\/\//i, "https://");
 }
 
 function teamDisplayName(t: RawTeam): string {
@@ -359,7 +370,7 @@ function buildSide(
     teamId: team.id ?? side.teamId ?? 0,
     name: teamDisplayName(team),
     abbrev: team.abbrev ?? "",
-    logo: team.logo,
+    logo: secureImageUrl(team.logo),
     record: recordString(team),
     points: round(points),
     projected,
