@@ -124,7 +124,7 @@ function AddLeague({ saved, onAdded, onNeedsCookies }: { saved: SavedLeague[]; o
                 }`}
               >
                 <input type="radio" name="team" className="sr-only" checked={teamId === t.id} onChange={() => setTeamId(t.id)} />
-                <TeamLogo src={t.logo} className="h-6 w-6" />
+                <TeamLogo src={t.logo} seed={`${found.leagueId}:${t.id}`} className="h-6 w-6" />
                 <span className="min-w-0 truncate">{t.name}</span>
               </label>
             ))}

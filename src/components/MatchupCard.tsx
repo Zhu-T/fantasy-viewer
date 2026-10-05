@@ -22,13 +22,25 @@ function redZoneCount(side: TeamSide): number {
 }
 
 /** One team: logo, name, record and progress on the left, score and projection on the right. */
-function TeamRow({ side, ahead, final, scorer }: { side: TeamSide; ahead: boolean; final: boolean; scorer?: LastScorer }) {
+function TeamRow({
+  side,
+  leagueId,
+  ahead,
+  final,
+  scorer,
+}: {
+  side: TeamSide;
+  leagueId: string;
+  ahead: boolean;
+  final: boolean;
+  scorer?: LastScorer;
+}) {
   return (
     <div className="relative flex items-center gap-3 px-4 py-2.5">
       {/* The team that's ahead gets an amber bar on the card's edge (and a text label for screen readers). */}
       <span className={`absolute inset-y-2 left-0 w-[3px] rounded-r-full ${ahead ? "bg-flag" : ""}`} aria-hidden />
       {ahead && <span className="sr-only">Leading:</span>}
-      <TeamLogo src={side.logo} className="h-8 w-8" />
+      <TeamLogo src={side.logo} seed={`${leagueId}:${side.teamId}`} className="h-8 w-8" />
       <div className="min-w-0 flex-1">
         <div className="truncate text-[15px] font-medium leading-tight">{side.name}</div>
         <div className="mt-0.5 flex flex-wrap gap-x-2.5 text-xs text-muted">
@@ -133,9 +145,9 @@ export function MatchupCard({
       </div>
 
       <div className="py-1.5">
-        <TeamRow side={m.me} ahead={meAhead} final={final} scorer={meScorer} />
+        <TeamRow side={m.me} leagueId={m.leagueId} ahead={meAhead} final={final} scorer={meScorer} />
         {opp ? (
-          <TeamRow side={opp} ahead={oppAhead} final={final} scorer={oppScorer} />
+          <TeamRow side={opp} leagueId={m.leagueId} ahead={oppAhead} final={final} scorer={oppScorer} />
         ) : (
           <p className="px-4 pb-2 text-sm text-muted">No opponent this week.</p>
         )}

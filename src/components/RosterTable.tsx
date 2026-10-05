@@ -74,7 +74,7 @@ function Half({ p, side, scorer }: { p: PlayerLine | undefined; side: "left" | "
     <div className={`flex min-w-0 items-center gap-2 ${right ? "flex-row-reverse" : ""}`}>
       {/* Phones skip the photo: the lineup columns are too narrow there. */}
       <span className="hidden shrink-0 sm:block">
-        <TeamLogo key={photo} src={photo} faceTop={p.position !== "D/ST"} className="h-8 w-8" />
+        <TeamLogo key={photo} src={photo} seed={p.id || undefined} faceTop={p.position !== "D/ST"} className="h-8 w-8" />
       </span>
       <div className={`min-w-0 flex-1 ${right ? "text-right" : ""}`}>
       <div className={`truncate text-[13px] font-medium ${scored ? "text-win" : ""}`}>
