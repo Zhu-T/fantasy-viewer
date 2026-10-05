@@ -7,14 +7,18 @@ import useSWR from "swr";
 import { fetcher, type WithCacheFlag } from "@/components/fetcher";
 import { Notice, buttonClass, gridClass } from "@/components/ui";
 import { MatchupCard } from "@/components/MatchupCard";
+import { SortableCards, applyOrder, useCardOrder } from "@/components/SortableCards";
 import { StatusBar } from "@/components/StatusBar";
 import { recordMatchups } from "@/components/useRecentChanges";
 import { useDocumentTitle } from "@/components/useDocumentTitle";
 import { useLiveOnly, useShowAll } from "@/components/usePreferences";
 import { useWeekParam } from "@/components/useWeekParam";
-import type { LeagueViewResponse } from "@/lib/espn/types";
+import type { LeagueViewResponse, MyMatchup } from "@/lib/espn/types";
 
 const IDLE_MS = 5 * 60_000;
+
+/** Stable id for a matchup within a week (ESPN's matchup id, else the two team ids). */
+const matchupKey = (m: MyMatchup) => String(m.matchupId ?? `${m.me.teamId}-${m.opponent?.teamId ?? "bye"}`);
 
 /** Every matchup in one league for the week, refreshing live like the home page. */
 // useSearchParams (the week lives in the URL) needs a Suspense boundary.
@@ -41,7 +45,9 @@ function LeaguePage() {
   });
 
   const data = league.data;
-  const allMatchups = data?.matchups ?? [];
+  // Matchups change every week, so the saved order is per league and week.
+  const [cardOrder, setCardOrder] = useCardOrder(`fv-order-league-${id}-w${data?.week ?? "current"}`);
+  const allMatchups = applyOrder(data?.matchups ?? [], matchupKey, cardOrder);
   const matchups = liveOnly ? allMatchups.filter((m) => m.status === "live") : allMatchups;
 
   // Diff each refresh against the last to find point changes.
@@ -108,11 +114,19 @@ function LeaguePage() {
         )}
 
         {matchups.length > 0 && (
-          <div className={gridClass(showAll)}>
-            {matchups.map((m, i) => (
-              <MatchupCard key={`${m.matchupId ?? i}-${showAll}`} m={m} lineupsOpen={showAll} inLeague />
-            ))}
-          </div>
+          <SortableCards
+            all={allMatchups}
+            visible={matchups}
+            idOf={matchupKey}
+            labelOf={(m) => `${m.me.name} vs ${m.opponent?.name ?? "bye"}`}
+            onReorder={setCardOrder}
+            className={gridClass(showAll)}
+            handleStyle="top-center"
+            render={(m, handle) => (
+              // Re-key on "Show all" so every card picks up the new default.
+              <MatchupCard key={`${matchupKey(m)}-${showAll}`} m={m} lineupsOpen={showAll} inLeague topHandle={handle} />
+            )}
+          />
         )}
 
         {data && (

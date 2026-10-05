@@ -130,6 +130,7 @@ export function MatchupCard({
   inLeague = false,
   leagueHref,
   dragHandle,
+  topHandle,
 }: {
   m: MyMatchup;
   lineupsOpen?: boolean;
@@ -138,6 +139,8 @@ export function MatchupCard({
   leagueHref?: string;
   /** Drag grip for reordering, shown at the start of the header. */
   dragHandle?: ReactNode;
+  /** Drag handle that positions itself on the card (top center); rendered as the card's first child. */
+  topHandle?: ReactNode;
 }) {
   const [open, setOpen] = useState(lineupsOpen);
   const opp = m.opponent;
@@ -151,7 +154,8 @@ export function MatchupCard({
   const oppChanges = whilePlaying(useRecentChanges(m.leagueId, m.week, opp?.teamId), opp);
 
   return (
-    <article className={`min-w-0 overflow-hidden ${cardClass} ${highlight ? "outline outline-1 outline-accent-solid" : ""}`}>
+    <article className={`relative min-w-0 overflow-hidden ${cardClass} ${highlight ? "outline outline-1 outline-accent-solid" : ""}`}>
+      {topHandle}
       <div className="flex h-10 items-center gap-3 border-b border-border px-4 text-[13px]">
         {dragHandle}
         {inLeague ? (

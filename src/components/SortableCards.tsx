@@ -77,8 +77,13 @@ interface Props<T> {
   labelOf: (item: T) => string;
   onReorder: (ids: string[]) => void;
   className: string;
-  /** Renders a card; `handle` is the drag grip to place in its header. */
+  /** Renders a card; `handle` is the drag control to place in it. */
   render: (item: T, handle: ReactNode) => ReactNode;
+  /**
+   * "grip": a dotted grip for the start of the card's header.
+   * "top-center": a short bar pinned to the top center of the card.
+   */
+  handleStyle?: "grip" | "top-center";
 }
 
 /**
@@ -86,7 +91,7 @@ interface Props<T> {
  * keyboard: focus the grip, Space to pick up, arrows to move, Space to drop),
  * so links and buttons inside cards keep working and phones still scroll.
  */
-export function SortableCards<T>({ all, visible, idOf, labelOf, onReorder, className, render }: Props<T>) {
+export function SortableCards<T>({ all, visible, idOf, labelOf, onReorder, className, render, handleStyle = "grip" }: Props<T>) {
   const sensors = useSensors(
     // A few pixels of movement before a drag starts, so a tap on the grip isn't a drag.
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -106,7 +111,7 @@ export function SortableCards<T>({ all, visible, idOf, labelOf, onReorder, class
       <SortableContext items={ids} strategy={rectSortingStrategy}>
         <div className={className}>
           {visible.map((item) => (
-            <SortableItem key={idOf(item)} id={idOf(item)} label={labelOf(item)}>
+            <SortableItem key={idOf(item)} id={idOf(item)} label={labelOf(item)} handleStyle={handleStyle}>
               {(handle) => render(item, handle)}
             </SortableItem>
           ))}
@@ -116,22 +121,38 @@ export function SortableCards<T>({ all, visible, idOf, labelOf, onReorder, class
   );
 }
 
-function SortableItem({ id, label, children }: { id: string; label: string; children: (handle: ReactNode) => ReactNode }) {
+function SortableItem({
+  id,
+  label,
+  handleStyle,
+  children,
+}: {
+  id: string;
+  label: string;
+  handleStyle: "grip" | "top-center";
+  children: (handle: ReactNode) => ReactNode;
+}) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id });
-  const handle = (
-    <button
-      ref={setActivatorNodeRef}
-      type="button"
-      {...attributes}
-      {...listeners}
-      aria-label={`Move ${label}`}
-      className="-ml-1.5 flex h-6 w-5 shrink-0 cursor-grab touch-none items-center justify-center rounded text-faint transition-colors hover:bg-surface-2 hover:text-foreground active:cursor-grabbing pointer-coarse:h-11 pointer-coarse:w-8"
-    >
-      <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
-        {[4, 8, 12].flatMap((y) => [6, 10].map((x) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.2" />))}
-      </svg>
-    </button>
-  );
+  const common = { ref: setActivatorNodeRef, type: "button" as const, ...attributes, ...listeners, "aria-label": `Move ${label}` };
+  const handle =
+    handleStyle === "top-center" ? (
+      // A short bar centered on the card's top edge; the button area is bigger than the bar to be easy to grab.
+      <button
+        {...common}
+        className="group absolute left-1/2 top-0 z-[1] flex h-5 w-16 -translate-x-1/2 cursor-grab touch-none justify-center rounded-b-md pt-1.5 active:cursor-grabbing pointer-coarse:h-9 pointer-coarse:w-20 pointer-coarse:pt-2"
+      >
+        <span className="h-1 w-8 rounded-full bg-border-strong transition-colors group-hover:bg-muted group-active:bg-foreground" aria-hidden />
+      </button>
+    ) : (
+      <button
+        {...common}
+        className="-ml-1.5 flex h-6 w-5 shrink-0 cursor-grab touch-none items-center justify-center rounded text-faint transition-colors hover:bg-surface-2 hover:text-foreground active:cursor-grabbing pointer-coarse:h-11 pointer-coarse:w-8"
+      >
+        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
+          {[4, 8, 12].flatMap((y) => [6, 10].map((x) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.2" />))}
+        </svg>
+      </button>
+    );
   return (
     <div
       ref={setNodeRef}
