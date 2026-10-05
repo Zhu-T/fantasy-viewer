@@ -6,7 +6,7 @@ import type { MyMatchup, TeamSide } from "@/lib/espn/types";
 import { RosterTable } from "./RosterTable";
 import { TeamLogo } from "./TeamLogo";
 import { cardClass, changeClass, formatChange, formatKickoff, formatPoints, formatProjection } from "./ui";
-import { useLastScorer, type LastScorer } from "./useLastScorer";
+import { useRecentChanges, type TeamChanges } from "./useRecentChanges";
 
 /** Progress line: players on the field now in red, players still to play in yellow. */
 function remaining(side: TeamSide): { text: string; className?: string }[] {
@@ -21,10 +21,15 @@ function redZoneCount(side: TeamSide): number {
   return side.starters.filter((p) => p.gameState === "in" && p.redZone).length;
 }
 
-/** The latest point change is only worth calling out while that player's game is still on. */
-function whilePlaying(scorer: LastScorer | undefined, side: TeamSide | null): LastScorer | undefined {
-  if (!scorer || !side) return undefined;
-  return side.starters.some((p) => p.id === scorer.playerId && p.gameState === "in") ? scorer : undefined;
+/**
+ * This team's point changes from the last minute, kept only for players whose
+ * game is still on (no need to call out points once a game has ended).
+ */
+function whilePlaying(changes: TeamChanges | undefined, side: TeamSide | null): TeamChanges | undefined {
+  if (!changes || !side) return undefined;
+  const live = new Set(side.starters.filter((p) => p.gameState === "in").map((p) => String(p.id)));
+  const kept = Object.entries(changes).filter(([id]) => live.has(id));
+  return kept.length ? Object.fromEntries(kept) : undefined;
 }
 
 /** One team: logo, name, record and progress on the left, score and projection on the right. */
@@ -33,13 +38,13 @@ function TeamRow({
   leagueId,
   ahead,
   final,
-  scorer,
+  changes,
 }: {
   side: TeamSide;
   leagueId: string;
   ahead: boolean;
   final: boolean;
-  scorer?: LastScorer;
+  changes?: TeamChanges;
 }) {
   return (
     <div className="relative flex items-center gap-3 px-4 py-2.5">
@@ -59,9 +64,17 @@ function TeamRow({
             ))}
           {!final && redZoneCount(side) > 0 && <span className="font-medium text-danger">{redZoneCount(side)}&nbsp;in red zone</span>}
         </div>
-        {!final && scorer && (
-          <div className={`mt-0.5 truncate text-xs font-medium ${changeClass(scorer.delta)}`} title="Latest point change on this team">
-            {scorer.name} {formatChange(scorer.delta)}
+        {!final && changes && (
+          // Everyone on this team whose points moved in the last minute, newest first.
+          <div className="mt-0.5 flex flex-wrap gap-x-2.5 text-xs font-medium" title="Point changes in the last minute">
+            {side.starters
+              .filter((p) => changes[String(p.id)])
+              .sort((a, b) => changes[String(b.id)].at - changes[String(a.id)].at)
+              .map((p) => (
+                <span key={p.id} className={changeClass(changes[String(p.id)].delta)}>
+                  {p.name}&nbsp;{formatChange(changes[String(p.id)].delta)}
+                </span>
+              ))}
           </div>
         )}
       </div>
@@ -131,8 +144,8 @@ export function MatchupCard({
   const meAhead = !!opp && started && m.me.points > opp.points;
   const oppAhead = !!opp && started && opp.points > m.me.points;
   const highlight = inLeague && m.involvesMe;
-  const meScorer = whilePlaying(useLastScorer(m.leagueId, m.week, m.me.teamId), m.me);
-  const oppScorer = whilePlaying(useLastScorer(m.leagueId, m.week, opp?.teamId), opp);
+  const meChanges = whilePlaying(useRecentChanges(m.leagueId, m.week, m.me.teamId), m.me);
+  const oppChanges = whilePlaying(useRecentChanges(m.leagueId, m.week, opp?.teamId), opp);
 
   return (
     <article className={`min-w-0 overflow-hidden ${cardClass} ${highlight ? "outline outline-1 outline-accent-solid" : ""}`}>
@@ -151,9 +164,9 @@ export function MatchupCard({
       </div>
 
       <div className="py-1.5">
-        <TeamRow side={m.me} leagueId={m.leagueId} ahead={meAhead} final={final} scorer={meScorer} />
+        <TeamRow side={m.me} leagueId={m.leagueId} ahead={meAhead} final={final} changes={meChanges} />
         {opp ? (
-          <TeamRow side={opp} leagueId={m.leagueId} ahead={oppAhead} final={final} scorer={oppScorer} />
+          <TeamRow side={opp} leagueId={m.leagueId} ahead={oppAhead} final={final} changes={oppChanges} />
         ) : (
           <p className="px-4 pb-2 text-sm text-muted">No opponent this week.</p>
         )}
@@ -176,7 +189,7 @@ export function MatchupCard({
       )}
       {open && hasLineups && opp && (
         <div className="unfold border-t border-border">
-          <RosterTable me={m.me} opponent={opp} meScorer={meScorer} oppScorer={oppScorer} />
+          <RosterTable me={m.me} opponent={opp} meChanges={meChanges} oppChanges={oppChanges} />
         </div>
       )}
       {!inLeague && (

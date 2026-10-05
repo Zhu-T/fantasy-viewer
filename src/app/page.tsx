@@ -7,7 +7,7 @@ import { Notice, buttonClass, gridClass } from "@/components/ui";
 import { SetupPanel } from "@/components/SetupPanel";
 import { StatusBar } from "@/components/StatusBar";
 import { fetcher, type WithCacheFlag } from "@/components/fetcher";
-import { recordMatchups } from "@/components/useLastScorer";
+import { recordMatchups } from "@/components/useRecentChanges";
 import { useDocumentTitle } from "@/components/useDocumentTitle";
 import { useShowAll } from "@/components/useShowAll";
 import { useWeekParam } from "@/components/useWeekParam";
@@ -81,7 +81,7 @@ function Home() {
   const errors = data?.errors ?? [];
   const showSetup = (data != null && !configured) || setup != null;
 
-  // Diff each refresh against the last to find who just scored.
+  // Diff each refresh against the last to find point changes.
   useEffect(() => {
     if (data?.leagues && !data.fromCache) recordMatchups(data.leagues);
   }, [data]);

@@ -3,7 +3,7 @@
 import type { PlayerLine, TeamSide } from "@/lib/espn/types";
 import { changeClass, formatChange, formatKickoff, formatPoints, formatProbability, formatProjection } from "./ui";
 import { TeamLogo } from "./TeamLogo";
-import type { LastScorer } from "./useLastScorer";
+import type { PointChange, TeamChanges } from "./useRecentChanges";
 
 /**
  * ESPN's CDN, resized to a small thumbnail (~8 KB instead of ~260 KB). Fantasy
@@ -50,11 +50,11 @@ function FieldTags({ p, right }: { p: PlayerLine; right: boolean }) {
 }
 
 /** Half a lineup row: name and game on the outside, points next to the slot. */
-function Half({ p, side, scorer }: { p: PlayerLine | undefined; side: "left" | "right"; scorer?: LastScorer }) {
+function Half({ p, side, changes }: { p: PlayerLine | undefined; side: "left" | "right"; changes?: TeamChanges }) {
   const right = side === "right";
   if (!p) return <div className="col-span-2" />;
-  // Latest point change on this team: name and points in green (gain) or red (loss), change under the points.
-  const changed = scorer?.playerId === p.id ? scorer : undefined;
+  // Points moved in the last minute: name and points in green (gain) or red (loss), change under the points.
+  const changed: PointChange | undefined = changes?.[String(p.id)];
   const changeColor = changed ? changeClass(changed.delta) : "";
   const points = (
     <div className={`w-10 shrink-0 sm:w-12 ${right ? "text-left" : "text-right"}`}>
@@ -146,13 +146,13 @@ function WinProbability({ me, opponent }: { me: TeamSide; opponent: TeamSide }) 
 export function RosterTable({
   me,
   opponent,
-  meScorer,
-  oppScorer,
+  meChanges,
+  oppChanges,
 }: {
   me: TeamSide;
   opponent: TeamSide;
-  meScorer?: LastScorer;
-  oppScorer?: LastScorer;
+  meChanges?: TeamChanges;
+  oppChanges?: TeamChanges;
 }) {
   const rows = Math.max(me.starters.length, opponent.starters.length);
   return (
@@ -171,11 +171,11 @@ export function RosterTable({
             key={i}
             className="grid grid-cols-[minmax(0,1fr)_auto_2.25rem_auto_minmax(0,1fr)] items-center gap-x-1.5 border-t border-border py-2 sm:grid-cols-[minmax(0,1fr)_auto_2.75rem_auto_minmax(0,1fr)] sm:gap-x-2"
           >
-            <Half p={a} side="left" scorer={meScorer} />
+            <Half p={a} side="left" changes={meChanges} />
             <span className="rounded bg-surface-2 py-0.5 text-center font-mono text-[11px] text-muted">
               {a?.slot ?? b?.slot}
             </span>
-            <Half p={b} side="right" scorer={oppScorer} />
+            <Half p={b} side="right" changes={oppChanges} />
           </div>
         );
       })}

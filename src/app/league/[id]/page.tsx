@@ -8,7 +8,7 @@ import { fetcher, type WithCacheFlag } from "@/components/fetcher";
 import { Notice, buttonClass, gridClass } from "@/components/ui";
 import { MatchupCard } from "@/components/MatchupCard";
 import { StatusBar } from "@/components/StatusBar";
-import { recordMatchups } from "@/components/useLastScorer";
+import { recordMatchups } from "@/components/useRecentChanges";
 import { useDocumentTitle } from "@/components/useDocumentTitle";
 import { useShowAll } from "@/components/useShowAll";
 import { useWeekParam } from "@/components/useWeekParam";
@@ -42,7 +42,7 @@ function LeaguePage() {
   const data = league.data;
   const matchups = data?.matchups ?? [];
 
-  // Diff each refresh against the last to find who just scored.
+  // Diff each refresh against the last to find point changes.
   useEffect(() => {
     if (data?.matchups && !data.fromCache) recordMatchups(data.matchups);
   }, [data]);
