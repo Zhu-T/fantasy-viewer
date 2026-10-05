@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { MyMatchup, TeamSide } from "@/lib/espn/types";
 import { RosterTable } from "./RosterTable";
 import { TeamLogo } from "./TeamLogo";
@@ -129,12 +129,15 @@ export function MatchupCard({
   lineupsOpen = false,
   inLeague = false,
   leagueHref,
+  dragHandle,
 }: {
   m: MyMatchup;
   lineupsOpen?: boolean;
   inLeague?: boolean;
   /** Home page: link to this league's page (keeps the week being viewed). */
   leagueHref?: string;
+  /** Drag grip for reordering, shown at the start of the header. */
+  dragHandle?: ReactNode;
 }) {
   const [open, setOpen] = useState(lineupsOpen);
   const opp = m.opponent;
@@ -150,6 +153,7 @@ export function MatchupCard({
   return (
     <article className={`min-w-0 overflow-hidden ${cardClass} ${highlight ? "outline outline-1 outline-accent-solid" : ""}`}>
       <div className="flex h-10 items-center gap-3 border-b border-border px-4 text-[13px]">
+        {dragHandle}
         {inLeague ? (
           <span className={`font-medium ${highlight ? "text-accent" : "text-muted"}`}>{highlight ? "Your Matchup" : "Matchup"}</span>
         ) : (

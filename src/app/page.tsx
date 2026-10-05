@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { MatchupCard } from "@/components/MatchupCard";
 import { Notice, buttonClass, gridClass } from "@/components/ui";
 import { SetupPanel } from "@/components/SetupPanel";
+import { SortableCards, applyOrder, useCardOrder } from "@/components/SortableCards";
 import { StatusBar } from "@/components/StatusBar";
 import { fetcher, type WithCacheFlag } from "@/components/fetcher";
 import { recordMatchups } from "@/components/useRecentChanges";
@@ -41,6 +42,7 @@ function Home() {
   const [setup, setSetup] = useState<null | "leagues" | "connect">(null);
   const [showAll, setShowAll] = useShowAll();
   const [liveOnly, setLiveOnly] = useLiveOnly();
+  const [cardOrder, setCardOrder] = useCardOrder("fv-order-home");
 
   const matchupsKey = week ? `/api/matchups?week=${week}` : "/api/matchups";
   const matchups = useSWR<WithCacheFlag<MatchupsResponse>>(matchupsKey, fetcher, {
@@ -78,7 +80,7 @@ function Home() {
     await Promise.all([auth.mutate(), matchups.mutate()]);
   }, [auth, matchups]);
 
-  const allLeagues = data?.leagues ?? [];
+  const allLeagues = applyOrder(data?.leagues ?? [], (m) => m.leagueId, cardOrder);
   const leagues = liveOnly ? allLeagues.filter((m) => m.status === "live") : allLeagues;
   const errors = data?.errors ?? [];
   const showSetup = (data != null && !configured) || setup != null;
@@ -163,17 +165,24 @@ function Home() {
         )}
 
         {!showSetup && leagues.length > 0 && (
-          <div className={gridClass(showAll)}>
-            {leagues.map((m) => (
+          <SortableCards
+            all={allLeagues}
+            visible={leagues}
+            idOf={(m) => m.leagueId}
+            labelOf={(m) => m.leagueName}
+            onReorder={setCardOrder}
+            className={gridClass(showAll)}
+            render={(m, handle) => (
               // Re-key on "Show all" so every card picks up the new default.
               <MatchupCard
                 key={`${m.leagueId}-${showAll}`}
                 m={m}
                 lineupsOpen={showAll}
                 leagueHref={`/league/${m.leagueId}${week ? `?week=${week}` : ""}`}
+                dragHandle={handle}
               />
-            ))}
-          </div>
+            )}
+          />
         )}
 
         {!showSetup && errors.length > 0 && (
