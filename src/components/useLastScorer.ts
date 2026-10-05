@@ -5,15 +5,15 @@ import type { MyMatchup, TeamSide } from "@/lib/espn/types";
 
 /**
  * ESPN has no play-by-play feed for fantasy, so "who just scored" comes from
- * comparing each refresh with the last one: the starter whose points went up
- * most recently is that team's last scorer. Snapshots live in this browser
+ * comparing each refresh with the last one: the starter whose points changed
+ * most recently (up or down) is that team's latest point change. Snapshots live in this browser
  * (localStorage, per league and week) so a reload keeps the highlight.
  */
 
 export interface LastScorer {
   playerId: number;
   name: string;
-  /** Points gained in the refresh where this player last scored. */
+  /** Points gained (positive) or lost (negative) in the refresh where this player's points last changed. */
   delta: number;
   at: number;
 }
@@ -60,7 +60,8 @@ function recordSide(bucket: Bucket, side: TeamSide): boolean {
     // No baseline yet (first look, or just moved into the lineup): nothing to compare.
     if (before === undefined) continue;
     const delta = Math.round((p.points - before) * 100) / 100;
-    if (delta > 0 && (!best || delta > best.delta)) best = { playerId: p.id, name: p.name, delta, at: Date.now() };
+    // Gains and losses both count; when several change in one refresh, the biggest move wins.
+    if (delta !== 0 && (!best || Math.abs(delta) > Math.abs(best.delta))) best = { playerId: p.id, name: p.name, delta, at: Date.now() };
   }
   if (!best) return false;
   bucket.last[String(side.teamId)] = best;
@@ -96,7 +97,7 @@ function subscribe(cb: () => void) {
   return () => listeners.delete(cb);
 }
 
-/** The last player on this team whose points went up, if we've seen one. */
+/** The latest point change (gain or loss) on this team, if we've seen one. */
 export function useLastScorer(leagueId: string, week: number, teamId: number | undefined): LastScorer | undefined {
   return useSyncExternalStore(
     subscribe,

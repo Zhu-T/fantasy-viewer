@@ -1,7 +1,7 @@
 "use client";
 
 import type { PlayerLine, TeamSide } from "@/lib/espn/types";
-import { formatKickoff, formatPoints, formatProbability, formatProjection } from "./ui";
+import { changeClass, formatChange, formatKickoff, formatPoints, formatProbability, formatProjection } from "./ui";
 import { TeamLogo } from "./TeamLogo";
 import type { LastScorer } from "./useLastScorer";
 
@@ -53,17 +53,18 @@ function FieldTags({ p, right }: { p: PlayerLine; right: boolean }) {
 function Half({ p, side, scorer }: { p: PlayerLine | undefined; side: "left" | "right"; scorer?: LastScorer }) {
   const right = side === "right";
   if (!p) return <div className="col-span-2" />;
-  // Last player on this team to score: name and points in green, gain under the points.
-  const scored = scorer?.playerId === p.id;
+  // Latest point change on this team: name and points in green (gain) or red (loss), change under the points.
+  const changed = scorer?.playerId === p.id ? scorer : undefined;
+  const changeColor = changed ? changeClass(changed.delta) : "";
   const points = (
     <div className={`w-10 shrink-0 sm:w-12 ${right ? "text-left" : "text-right"}`}>
       <div
-        className={`text-[15px] font-semibold leading-tight ${scored ? "text-win" : p.gameState === "pre" || p.gameState === "bye" ? "text-muted" : ""}`}
+        className={`text-[15px] font-semibold leading-tight ${changed ? changeColor : p.gameState === "pre" || p.gameState === "bye" ? "text-muted" : ""}`}
       >
         {playerPoints(p)}
       </div>
-      {scored ? (
-        <div className="text-[11px] font-medium text-win">+{formatPoints(scorer.delta)}</div>
+      {changed ? (
+        <div className={`text-[11px] font-medium ${changeColor}`}>{formatChange(changed.delta)}</div>
       ) : (
         p.gameState !== "post" && p.projected != null && <div className="text-[11px] text-muted">{formatProjection(p.projected)}</div>
       )}
@@ -77,7 +78,7 @@ function Half({ p, side, scorer }: { p: PlayerLine | undefined; side: "left" | "
         <TeamLogo key={photo} src={photo} seed={p.id || undefined} faceTop={p.position !== "D/ST"} className="h-8 w-8" />
       </span>
       <div className={`min-w-0 flex-1 ${right ? "text-right" : ""}`}>
-      <div className={`truncate text-[13px] font-medium ${scored ? "text-win" : ""}`}>
+      <div className={`truncate text-[13px] font-medium ${changeColor}`}>
         {p.name}
         {p.injuryStatus && (
           <span className="ml-1 text-[11px] font-semibold text-danger" title={p.injuryStatus}>

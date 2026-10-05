@@ -62,6 +62,16 @@ export function formatPoints(n: number | null | undefined): string {
   return n == null ? "–" : points.format(n);
 }
 
+/** A point change with its sign: "+6.6" for a gain, "−1.5" (true minus sign) for a loss. */
+export function formatChange(delta: number): string {
+  return `${delta > 0 ? "+" : "−"}${points.format(Math.abs(delta))}`;
+}
+
+/** Green for a gain, red for a loss. */
+export function changeClass(delta: number): string {
+  return delta > 0 ? "text-win" : "text-danger";
+}
+
 /** Projections are estimates, so one decimal is plenty (as ESPN shows them). */
 export function formatProjection(n: number | null | undefined): string {
   return n == null ? "–" : projection.format(n);

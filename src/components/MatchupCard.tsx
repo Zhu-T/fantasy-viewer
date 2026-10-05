@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { MyMatchup, TeamSide } from "@/lib/espn/types";
 import { RosterTable } from "./RosterTable";
 import { TeamLogo } from "./TeamLogo";
-import { cardClass, formatKickoff, formatPoints, formatProjection } from "./ui";
+import { cardClass, changeClass, formatChange, formatKickoff, formatPoints, formatProjection } from "./ui";
 import { useLastScorer, type LastScorer } from "./useLastScorer";
 
 /** Progress line: players on the field now in red, players still to play in yellow. */
@@ -21,7 +21,7 @@ function redZoneCount(side: TeamSide): number {
   return side.starters.filter((p) => p.gameState === "in" && p.redZone).length;
 }
 
-/** The last scorer is only worth calling out while their game is still on. */
+/** The latest point change is only worth calling out while that player's game is still on. */
 function whilePlaying(scorer: LastScorer | undefined, side: TeamSide | null): LastScorer | undefined {
   if (!scorer || !side) return undefined;
   return side.starters.some((p) => p.id === scorer.playerId && p.gameState === "in") ? scorer : undefined;
@@ -60,8 +60,8 @@ function TeamRow({
           {!final && redZoneCount(side) > 0 && <span className="font-medium text-danger">{redZoneCount(side)}&nbsp;in red zone</span>}
         </div>
         {!final && scorer && (
-          <div className="mt-0.5 truncate text-xs font-medium text-win" title="Last player on this team to score">
-            {scorer.name} +{formatPoints(scorer.delta)}
+          <div className={`mt-0.5 truncate text-xs font-medium ${changeClass(scorer.delta)}`} title="Latest point change on this team">
+            {scorer.name} {formatChange(scorer.delta)}
           </div>
         )}
       </div>
