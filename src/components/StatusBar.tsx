@@ -19,6 +19,8 @@ interface Props {
   onWeekChange: (week: number | null) => void;
   showAll: boolean;
   onShowAllChange: (showAll: boolean) => void;
+  liveOnly: boolean;
+  onLiveOnlyChange: (liveOnly: boolean) => void;
   onRefresh: () => void;
   onRediscover?: () => void;
   onManage?: () => void;
@@ -31,6 +33,22 @@ function timeAgo(iso: string | undefined): string {
   if (s < 5) return "just now";
   if (s < 60) return `${s}s ago`;
   return `${Math.round(s / 60)}m ago`;
+}
+
+/** An on/off switch (a checkbox with role="switch", so it's keyboard- and screen-reader-friendly). */
+function Switch({ checked, onChange, label }: { checked: boolean; onChange: (checked: boolean) => void; label: string }) {
+  return (
+    <label className="inline-flex cursor-pointer items-center gap-2 text-[13px] font-medium pointer-coarse:min-h-11">
+      <input type="checkbox" role="switch" checked={checked} onChange={(e) => onChange(e.target.checked)} className="peer sr-only" />
+      <span
+        className="relative h-5 w-9 rounded-full bg-surface-3 shadow-control transition-colors peer-checked:bg-accent-solid peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-solid"
+        aria-hidden
+      >
+        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-foreground transition-[left] ${checked ? "left-[1.125rem]" : "left-0.5"}`} />
+      </span>
+      {label}
+    </label>
+  );
 }
 
 const stepper =
@@ -47,6 +65,8 @@ export function StatusBar({
   onWeekChange,
   showAll,
   onShowAllChange,
+  liveOnly,
+  onLiveOnlyChange,
   onRefresh,
   onRediscover,
   onManage,
@@ -113,18 +133,8 @@ export function StatusBar({
             </div>
           )}
 
-          <label className="inline-flex cursor-pointer items-center gap-2 text-[13px] font-medium pointer-coarse:min-h-11">
-            <input type="checkbox" role="switch" checked={showAll} onChange={(e) => onShowAllChange(e.target.checked)} className="peer sr-only" />
-            <span
-              className="relative h-5 w-9 rounded-full bg-surface-3 shadow-control transition-colors peer-checked:bg-accent-solid peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-solid"
-              aria-hidden
-            >
-              <span
-                className={`absolute top-0.5 h-4 w-4 rounded-full bg-foreground transition-[left] ${showAll ? "left-[1.125rem]" : "left-0.5"}`}
-              />
-            </span>
-            Show All Lineups
-          </label>
+          <Switch checked={showAll} onChange={onShowAllChange} label="Show All Lineups" />
+          <Switch checked={liveOnly} onChange={onLiveOnlyChange} label="Live Only" />
 
           <div className="ml-auto flex items-center gap-2">
             {canRescan && onRediscover && (

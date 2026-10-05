@@ -9,7 +9,7 @@ import { StatusBar } from "@/components/StatusBar";
 import { fetcher, type WithCacheFlag } from "@/components/fetcher";
 import { recordMatchups } from "@/components/useRecentChanges";
 import { useDocumentTitle } from "@/components/useDocumentTitle";
-import { useShowAll } from "@/components/useShowAll";
+import { useLiveOnly, useShowAll } from "@/components/usePreferences";
 import { useWeekParam } from "@/components/useWeekParam";
 import type { AuthStatus, MatchupsResponse } from "@/lib/espn/types";
 
@@ -40,6 +40,7 @@ function Home() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [setup, setSetup] = useState<null | "leagues" | "connect">(null);
   const [showAll, setShowAll] = useShowAll();
+  const [liveOnly, setLiveOnly] = useLiveOnly();
 
   const matchupsKey = week ? `/api/matchups?week=${week}` : "/api/matchups";
   const matchups = useSWR<WithCacheFlag<MatchupsResponse>>(matchupsKey, fetcher, {
@@ -77,7 +78,8 @@ function Home() {
     await Promise.all([auth.mutate(), matchups.mutate()]);
   }, [auth, matchups]);
 
-  const leagues = data?.leagues ?? [];
+  const allLeagues = data?.leagues ?? [];
+  const leagues = liveOnly ? allLeagues.filter((m) => m.status === "live") : allLeagues;
   const errors = data?.errors ?? [];
   const showSetup = (data != null && !configured) || setup != null;
 
@@ -99,6 +101,8 @@ function Home() {
         onWeekChange={setWeek}
         showAll={showAll}
         onShowAllChange={setShowAll}
+        liveOnly={liveOnly}
+        onLiveOnlyChange={setLiveOnly}
         onRefresh={() => void matchups.mutate()}
         onRediscover={() => void rescan()}
         onManage={() => setSetup("leagues")}
@@ -138,7 +142,17 @@ function Home() {
           </div>
         )}
 
-        {!showSetup && data && configured && leagues.length === 0 && !matchups.isLoading && (
+        {!showSetup && liveOnly && allLeagues.length > 0 && leagues.length === 0 && (
+          <div className="mx-auto mt-20 max-w-sm text-center">
+            <h2 className="text-lg font-semibold">No Live Matchups</h2>
+            <p className="mt-1 text-balance text-sm text-muted">{allLeagues.length}&nbsp;{allLeagues.length === 1 ? "matchup" : "matchups"} hidden because nobody in them is playing right now.</p>
+            <button onClick={() => setLiveOnly(false)} className={`mt-5 ${buttonClass("secondary", "md")}`}>
+              Show All Matchups
+            </button>
+          </div>
+        )}
+
+        {!showSetup && data && configured && allLeagues.length === 0 && !matchups.isLoading && (
           <div className="mx-auto mt-20 max-w-sm text-center">
             <h2 className="text-lg font-semibold">No Matchups to Show</h2>
             <p className="mt-1 text-sm text-muted">Add a league to see this week&apos;s matchup here.</p>

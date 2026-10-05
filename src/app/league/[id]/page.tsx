@@ -10,7 +10,7 @@ import { MatchupCard } from "@/components/MatchupCard";
 import { StatusBar } from "@/components/StatusBar";
 import { recordMatchups } from "@/components/useRecentChanges";
 import { useDocumentTitle } from "@/components/useDocumentTitle";
-import { useShowAll } from "@/components/useShowAll";
+import { useLiveOnly, useShowAll } from "@/components/usePreferences";
 import { useWeekParam } from "@/components/useWeekParam";
 import type { LeagueViewResponse } from "@/lib/espn/types";
 
@@ -30,6 +30,7 @@ function LeaguePage() {
   const { id } = useParams<{ id: string }>();
   const [week, setWeek] = useWeekParam();
   const [showAll, setShowAll] = useShowAll();
+  const [liveOnly, setLiveOnly] = useLiveOnly();
 
   const key = `/api/league?id=${encodeURIComponent(id)}${week ? `&week=${week}` : ""}`;
   const league = useSWR<WithCacheFlag<LeagueViewResponse>>(key, fetcher, {
@@ -40,7 +41,8 @@ function LeaguePage() {
   });
 
   const data = league.data;
-  const matchups = data?.matchups ?? [];
+  const allMatchups = data?.matchups ?? [];
+  const matchups = liveOnly ? allMatchups.filter((m) => m.status === "live") : allMatchups;
 
   // Diff each refresh against the last to find point changes.
   useEffect(() => {
@@ -62,6 +64,8 @@ function LeaguePage() {
         onWeekChange={setWeek}
         showAll={showAll}
         onShowAllChange={setShowAll}
+        liveOnly={liveOnly}
+        onLiveOnlyChange={setLiveOnly}
         onRefresh={() => void league.mutate()}
         busy={false}
       />
@@ -87,7 +91,17 @@ function LeaguePage() {
           </div>
         )}
 
-        {data && !data.error && matchups.length === 0 && !league.isLoading && (
+        {liveOnly && allMatchups.length > 0 && matchups.length === 0 && (
+          <div className="mx-auto mt-20 max-w-sm text-center">
+            <h2 className="text-lg font-semibold">No Live Matchups</h2>
+            <p className="mt-1 text-balance text-sm text-muted">{allMatchups.length}&nbsp;{allMatchups.length === 1 ? "matchup" : "matchups"} hidden because nobody in them is playing right now.</p>
+            <button onClick={() => setLiveOnly(false)} className={`mt-5 ${buttonClass("secondary", "md")}`}>
+              Show All Matchups
+            </button>
+          </div>
+        )}
+
+        {data && !data.error && allMatchups.length === 0 && !league.isLoading && (
           <p className="mx-auto mt-16 max-w-sm text-center text-sm text-muted">
             This league has no matchups in week {data.week ?? "?"}. Try another week.
           </p>
